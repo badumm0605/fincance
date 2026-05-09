@@ -21,14 +21,15 @@
         }
         .icon-income { background-color: #d1e7dd; color: #198754; }
         .icon-expense { background-color: #f8d7da; color: #dc3545; }
-        /* Плавающая кнопка (FAB) */
         .fab {
             position: fixed; bottom: 24px; right: 24px;
             width: 60px; height: 60px;
             border-radius: 30px; font-size: 24px;
             box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
-            z-index: 1050; display: flex; align-items: center; justify-content: center;
+            z-index: 1040; display: flex; align-items: center; justify-content: center;
         }
+        /* Чтобы модалки не перекрывали друг друга криво, настроим z-index */
+        #addCategoryModal { z-index: 1060; }
     </style>
 </head>
 <body>
@@ -44,8 +45,7 @@
     </div>
 
     <h6 class="text-muted fw-bold mb-3 px-1">История операций</h6>
-    <div id="transactionsList" class="d-flex flex-column gap-2">
-        </div>
+    <div id="transactionsList" class="d-flex flex-column gap-2"></div>
 </div>
 
 <button class="btn btn-primary fab" onclick="showAddModal()">
@@ -61,10 +61,10 @@
             </div>
             <div class="modal-body">
                 <div class="btn-group w-100 mb-3" role="group">
-                    <input type="radio" class="btn-check" name="txType" id="typeExpense" value="expense" checked>
+                    <input type="radio" class="btn-check" name="txType" id="typeExpense" value="expense" checked onchange="updateCategorySelect()">
                     <label class="btn btn-outline-danger" for="typeExpense">Расход</label>
 
-                    <input type="radio" class="btn-check" name="txType" id="typeIncome" value="income">
+                    <input type="radio" class="btn-check" name="txType" id="typeIncome" value="income" onchange="updateCategorySelect()">
                     <label class="btn btn-outline-success" for="typeIncome">Доход</label>
                 </div>
 
@@ -73,16 +73,15 @@
                     <input type="number" id="txAmount" class="form-control form-control-lg fw-bold" placeholder="0" inputmode="decimal">
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label text-muted small mb-1">Категория</label>
-                    <select id="txCategory" class="form-select form-select-lg">
-                        <option value="Продукты">🛒 Продукты</option>
-                        <option value="Транспорт">🚕 Транспорт</option>
-                        <option value="Развлечения">🍿 Развлечения</option>
-                        <option value="Здоровье">💊 Здоровье</option>
-                        <option value="Бизнес (Запчасти)">🔧 Бизнес (Запчасти)</option>
-                        <option value="Прочее">📌 Прочее</option>
-                    </select>
+                <div class="d-flex gap-2 mb-3 align-items-end">
+                    <div class="flex-grow-1">
+                        <label class="form-label text-muted small mb-1">Категория</label>
+                        <select id="txCategory" class="form-select form-select-lg">
+                            </select>
+                    </div>
+                    <button class="btn btn-outline-primary" style="height: calc(1.5em + 1rem + 2px);" onclick="showCategoryModal()">
+                        <i class="fa-solid fa-folder-plus"></i>
+                    </button>
                 </div>
 
                 <div class="mb-4">
@@ -98,22 +97,38 @@
     </div>
 </div>
 
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold" id="categoryModalTitle">Новая категория</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="newCategoryName" class="form-control mb-3" placeholder="Название (например, Кофе)">
+                <button class="btn btn-primary w-100 fw-bold" onclick="saveNewCategory()">Добавить категорию</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="file:///android_asset/js/bootstrap.bundle.min.js"></script>
 <script>
-    const DB_NAME = "finance_bus.db"; // ОБЩАЯ ШИНА ДАННЫХ
+    const DB_NAME = "finance_bus.db";
+    let allCategories = []; // Храним тут все категории из БД
+    
     const addModal = new bootstrap.Modal(document.getElementById('addModal'));
+    const categoryModal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
 
-    // 1. Инициализация БД
+    // 1. Инициализация БД и таблиц
     function initDb() {
         if (!window.Android || !window.Android.executeSql) {
             console.error("Android Bridge недоступен.");
-            document.getElementById('transactionsList').innerHTML = '<p class="text-center text-muted">Запустите внутри Kontach</p>';
             return;
         }
 
-        // Создаем таблицу, если ее нет. 
-        // source_app - метка, откуда пришла транзакция (finance или crm)
-        const sql = `
+        // Таблица транзакций
+        window.Android.executeSql(DB_NAME, `
             CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 type TEXT, 
@@ -121,23 +136,102 @@
                 category TEXT,
                 note TEXT,
                 timestamp INTEGER,
-                source_app TEXT DEFAULT 'finance' 
+                source_app TEXT DEFAULT 'finance'
             )
-        `;
-        window.Android.executeSql(DB_NAME, sql);
+        `);
+
+        // Таблица категорий
+        window.Android.executeSql(DB_NAME, `
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                type TEXT
+            )
+        `);
+
+        seedCategoriesIfEmpty();
+        loadCategories();
         loadData();
     }
 
-    // 2. Загрузка данных
+    // 2. Базовые категории (если БД пустая)
+    function seedCategoriesIfEmpty() {
+        const checkSql = "SELECT COUNT(*) as count FROM categories";
+        try {
+            const res = JSON.parse(window.Android.querySql(DB_NAME, checkSql));
+            if (res[0] && res[0].count === 0) {
+                const defaults = [
+                    "('Продукты', 'expense')", "('Транспорт', 'expense')", 
+                    "('Здоровье', 'expense')", "('Бизнес (Запчасти)', 'expense')",
+                    "('Зарплата', 'income')", "('Услуги ремонта', 'income')", "('Переводы', 'income')"
+                ];
+                window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ${defaults.join(',')}`);
+            }
+        } catch (e) {
+            console.error("Ошибка проверки категорий: ", e);
+        }
+    }
+
+    // 3. Загрузка категорий и фильтрация
+    function loadCategories() {
+        const sql = "SELECT * FROM categories ORDER BY name ASC";
+        const jsonResult = window.Android.querySql(DB_NAME, sql);
+        allCategories = JSON.parse(jsonResult);
+        updateCategorySelect();
+    }
+
+    // Обновляет выпадающий список в зависимости от выбранного типа (Доход/Расход)
+    function updateCategorySelect() {
+        const selectedType = document.querySelector('input[name="txType"]:checked').value;
+        const select = document.getElementById('txCategory');
+        select.innerHTML = ''; // Очищаем список
+
+        const filtered = allCategories.filter(c => c.type === selectedType);
+        
+        if (filtered.length === 0) {
+            select.innerHTML = '<option value="">(Нет категорий)</option>';
+            return;
+        }
+
+        filtered.forEach(cat => {
+            select.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
+        });
+    }
+
+    // 4. Добавление своей категории
+    function showCategoryModal() {
+        document.getElementById('newCategoryName').value = '';
+        const selectedType = document.querySelector('input[name="txType"]:checked').value;
+        const typeRu = selectedType === 'expense' ? 'расхода' : 'дохода';
+        document.getElementById('categoryModalTitle').innerText = `Новая категория ${typeRu}`;
+        
+        // Временно прячем основную модалку, чтобы экран не затемнялся дважды (баг Bootstrap)
+        addModal.hide();
+        setTimeout(() => categoryModal.show(), 400); 
+    }
+
+    function saveNewCategory() {
+        const name = document.getElementById('newCategoryName').value.trim().replace(/'/g, "''");
+        if (!name) return;
+
+        const type = document.querySelector('input[name="txType"]:checked').value;
+        
+        window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ('${name}', '${type}')`);
+        
+        categoryModal.hide();
+        loadCategories(); // Подтягиваем новые категории
+        
+        // Возвращаем основную модалку
+        setTimeout(() => addModal.show(), 400);
+    }
+
+    // 5. Загрузка и рендер транзакций
     function loadData() {
         const sql = "SELECT * FROM transactions ORDER BY timestamp DESC";
         const jsonResult = window.Android.querySql(DB_NAME, sql);
-        const transactions = JSON.parse(jsonResult);
-        
-        renderUI(transactions);
+        renderUI(JSON.parse(jsonResult));
     }
 
-    // 3. Отрисовка интерфейса (Баланс и Список)
     function renderUI(transactions) {
         let totalIncome = 0;
         let totalExpense = 0;
@@ -156,9 +250,8 @@
             const isIncome = tx.type === 'income';
             const sign = isIncome ? '+' : '-';
             const colorClass = isIncome ? 'text-success' : '';
-            const iconClass = isIncome ? 'icon-income fa-arrow-down' : 'icon-expense fa-cart-shopping'; // Можно усложнить маппинг иконок
+            const iconClass = isIncome ? 'icon-income fa-arrow-down' : 'icon-expense fa-cart-shopping';
             
-            // Форматирование даты
             const dateStr = new Date(tx.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
             listContainer.innerHTML += `
@@ -180,13 +273,12 @@
             `;
         });
 
-        // Обновляем шапку
         document.getElementById('totalBalance').innerText = (totalIncome - totalExpense) + ' ₽';
         document.getElementById('totalIncome').innerText = totalIncome + ' ₽';
         document.getElementById('totalExpense').innerText = totalExpense + ' ₽';
     }
 
-    // 4. Логика добавления
+    // 6. Сохранение и удаление транзакций
     function showAddModal() {
         document.getElementById('txAmount').value = '';
         document.getElementById('txNote').value = '';
@@ -197,7 +289,7 @@
         const type = document.querySelector('input[name="txType"]:checked').value;
         const amount = parseFloat(document.getElementById('txAmount').value);
         const category = document.getElementById('txCategory').value;
-        const note = document.getElementById('txNote').value.replace(/'/g, "''"); // экранирование кавычек
+        const note = document.getElementById('txNote').value.replace(/'/g, "''");
         const ts = Date.now();
 
         if (isNaN(amount) || amount <= 0) {
@@ -215,7 +307,6 @@
         loadData();
     }
 
-    // 5. Удаление (по тапу на транзакцию)
     function deleteTx(id) {
         if (confirm("Удалить операцию?")) {
             window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`);
@@ -223,7 +314,6 @@
         }
     }
 
-    // Старт
     window.addEventListener('DOMContentLoaded', initDb);
 </script>
 </body>
