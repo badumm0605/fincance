@@ -24,7 +24,7 @@
         .acc-credit { background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%); }
         .acc-add { background: #e9ecef; color: #6c757d; border: 2px dashed #ced4da; min-width: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px;}
         
-        .transaction-card { border-radius: 16px; border: none; cursor: pointer; }
+        .transaction-card { border-radius: 16px; border: none; cursor: pointer; transition: 0.2s; }
         .icon-box {
             width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
             border-radius: 12px; font-size: 20px; flex-shrink: 0;
@@ -39,25 +39,96 @@
         }
         
         #addCategoryModal { z-index: 1060; }
+
+        /* Стили для CSS графиков аналитики */
+        .stat-bar-container { width: 100%; background-color: #e9ecef; border-radius: 8px; height: 12px; overflow: hidden; margin-top: 6px; }
+        .stat-bar-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #dc3545 0%, #ff6b6b 100%); }
+        .stat-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
     </style>
 </head>
 <body>
 
-<div class="container py-3">
-    <div class="d-flex justify-content-between align-items-end mb-3 px-1">
-        <h5 class="fw-bold mb-0">Мои счета</h5>
-        <h5 class="fw-bold mb-0 text-primary" id="totalBalanceAll">0 ₽</h5>
+<div id="mainScreen">
+    <div class="container py-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+            <h5 class="fw-bold mb-0">Мои счета</h5>
+            <button class="btn btn-light rounded-circle shadow-sm text-primary" style="width: 40px; height: 40px;" onclick="openStatsScreen()">
+                <i class="fa-solid fa-chart-pie"></i>
+            </button>
+        </div>
+
+        <div class="px-1 mb-2">
+            <span class="text-muted small">Общий баланс: </span>
+            <span class="fw-bold fs-5 text-primary" id="totalBalanceAll">0 ₽</span>
+        </div>
+
+        <div class="accounts-scroll px-1" id="accountsList"></div>
+
+        <h6 class="text-muted fw-bold mb-3 mt-4 px-1">История операций</h6>
+        <div id="transactionsList" class="d-flex flex-column gap-2"></div>
+
+        <div class="alert alert-warning mt-5 shadow-sm border-0">
+            <h6 class="fw-bold"><i class="fa-solid fa-bug me-2"></i>Панель разработчика</h6>
+            <button class="btn btn-dark btn-sm w-100 mb-2 fw-bold" onclick="generateTestTx()" id="btnGenerate">Сгенерировать 10 000 записей</button>
+            <button class="btn btn-outline-danger btn-sm w-100 fw-bold" onclick="clearFinanceDb()">Очистить базу (только Финансы)</button>
+        </div>
     </div>
 
-    <div class="accounts-scroll px-1" id="accountsList"></div>
-
-    <h6 class="text-muted fw-bold mb-3 mt-4 px-1">История операций</h6>
-    <div id="transactionsList" class="d-flex flex-column gap-2"></div>
+    <button class="btn btn-primary fab" onclick="showAddModal()">
+        <i class="fa-solid fa-plus"></i>
+    </button>
 </div>
 
-<button class="btn btn-primary fab" onclick="showAddModal()">
-    <i class="fa-solid fa-plus"></i>
-</button>
+<div id="statsScreen" class="d-none">
+    <div class="container py-3">
+        <div class="d-flex align-items-center mb-4 pt-1">
+            <button class="btn btn-light rounded-circle me-3 shadow-sm" onclick="closeStatsScreen()" style="width: 40px; height: 40px;">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <h5 class="mb-0 fw-bold">Аналитика</h5>
+        </div>
+
+        <div class="mb-4">
+            <select id="statsPeriod" class="form-select border-0 shadow-sm fw-bold text-primary" onchange="calculateStats()">
+                <option value="month" selected>Этот месяц</option>
+                <option value="lastMonth">Прошлый месяц</option>
+                <option value="year">Этот год</option>
+                <option value="all">За всё время</option>
+            </select>
+        </div>
+
+        <div class="row g-2 mb-4">
+            <div class="col-6">
+                <div class="card border-0 shadow-sm bg-success text-white">
+                    <div class="card-body p-3 text-center">
+                        <small class="opacity-75 d-block mb-1">Доходы</small>
+                        <h5 class="fw-bold mb-0" id="statIncome">0 ₽</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="card border-0 shadow-sm bg-danger text-white">
+                    <div class="card-body p-3 text-center">
+                        <small class="opacity-75 d-block mb-1">Расходы</small>
+                        <h5 class="fw-bold mb-0" id="statExpense">0 ₽</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 mt-2">
+                <div class="card border-0 shadow-sm bg-white">
+                    <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                        <span class="text-muted fw-bold">Итог (Дельта):</span>
+                        <span class="fs-4 fw-bold text-dark" id="statDelta">0 ₽</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-chart-bar me-2"></i>Расходы по категориям</h6>
+        <div id="categoryStatsList" class="d-flex flex-column">
+            </div>
+    </div>
+</div>
 
 <div class="modal fade" id="addModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered align-items-end mb-0" style="min-height: 100vh;">
@@ -117,7 +188,7 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label text-muted small mb-1">Название (например, Сбербанк)</label>
+                    <label class="form-label text-muted small mb-1">Название</label>
                     <input type="text" id="newAccName" class="form-control" placeholder="Моя карта">
                 </div>
                 <div class="mb-4">
@@ -143,7 +214,7 @@
             </div>
             <div class="modal-body">
                 <input type="text" id="newCategoryName" class="form-control mb-3" placeholder="Название (например, Кофе)">
-                <button class="btn btn-primary w-100 fw-bold" onclick="saveNewCategory()">Добавить категорию</button>
+                <button class="btn btn-primary w-100 fw-bold" onclick="saveNewCategory()">Добавить</button>
             </div>
         </div>
     </div>
@@ -154,66 +225,82 @@
     const DB_NAME = "finance_bus.db";
     let allCategories = [];
     let allAccounts = [];
-    let allTransactions = [];
     
+    // Переменные пагинации
+    let currentOffset = 0;
+    const LOAD_LIMIT = 20;
+    let isLoading = false;
+    let hasMoreData = true;
+
     const addModal = new bootstrap.Modal(document.getElementById('addModal'));
     const accModal = new bootstrap.Modal(document.getElementById('addAccountModal'));
     const categoryModal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
 
+    // === ИСТОРИЯ И РОУТИНГ SPA ===
+    window.addEventListener('popstate', function(event) {
+        const state = event.state;
+        if (document.getElementById('addModal').classList.contains('show')) addModal.hide();
+        
+        if (!state || !state.page) {
+            document.getElementById('statsScreen').classList.add('d-none');
+            document.getElementById('mainScreen').classList.remove('d-none');
+        } else if (state.page === 'stats') {
+            document.getElementById('mainScreen').classList.add('d-none');
+            document.getElementById('statsScreen').classList.remove('d-none');
+        }
+    });
+
+    document.getElementById('addModal').addEventListener('hide.bs.modal', function () {
+        if (history.state && history.state.page === 'modal') history.back();
+    });
+
+    // === ИНИЦИАЛИЗАЦИЯ ===
     function initDb() {
         if (!window.Android) return;
 
         window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, amount REAL, category TEXT, note TEXT, timestamp INTEGER, source_app TEXT DEFAULT 'finance')`);
         window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT)`);
         window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT)`);
-
         try { window.Android.executeSql(DB_NAME, `ALTER TABLE transactions ADD COLUMN account_id INTEGER DEFAULT 1`); } catch(e) {}
 
         seedDataIfEmpty();
-        loadAllData();
+        allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC"));
+        allAccounts = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM accounts ORDER BY id ASC"));
+        
+        updateCategorySelect();
+        updateAccountSelect();
+        updateBalancesFast(); // Мгновенный пересчет счетов через SQL
+        loadTransactions(true); // Загрузка первой пачки транзакций
     }
 
     function seedDataIfEmpty() {
         try {
-            const resCat = JSON.parse(window.Android.querySql(DB_NAME, "SELECT COUNT(*) as c FROM categories"));
-            if (resCat[0].c === 0) {
+            if (JSON.parse(window.Android.querySql(DB_NAME, "SELECT COUNT(*) as c FROM categories"))[0].c === 0) {
                 const defCat = ["('Продукты', 'expense')", "('Транспорт', 'expense')", "('Бизнес (Запчасти)', 'expense')", "('Зарплата', 'income')", "('Услуги ремонта', 'income')"];
                 window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ${defCat.join(',')}`);
             }
-        } catch (e) {}
-
-        try {
-            const resAcc = JSON.parse(window.Android.querySql(DB_NAME, "SELECT COUNT(*) as c FROM accounts"));
-            if (resAcc[0].c === 0) {
+            if (JSON.parse(window.Android.querySql(DB_NAME, "SELECT COUNT(*) as c FROM accounts"))[0].c === 0) {
                 window.Android.executeSql(DB_NAME, `INSERT INTO accounts (id, name, type) VALUES (1, 'Наличные', 'cash')`);
-                window.Android.executeSql(DB_NAME, `INSERT INTO accounts (id, name, type) VALUES (2, 'Основная карта', 'card')`);
+                window.Android.executeSql(DB_NAME, `INSERT INTO accounts (id, name, type) VALUES (2, 'Сбербанк', 'card')`);
             }
         } catch (e) {}
     }
 
-    function loadAllData() {
-        allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC"));
-        allAccounts = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM accounts ORDER BY id ASC"));
-        allTransactions = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM transactions ORDER BY timestamp DESC LIMIT 100")); 
-        
-        updateCategorySelect();
-        updateAccountSelect();
-        calculateAndRender();
-    }
-
-    function calculateAndRender() {
-        const allTx = JSON.parse(window.Android.querySql(DB_NAME, "SELECT type, amount, account_id FROM transactions"));
+    // === БЫСТРЫЙ ПЕРЕСЧЕТ БАЛАНСОВ (Агрегация SQL) ===
+    function updateBalancesFast() {
+        // Мы просим саму БД посчитать суммы, это происходит за миллисекунды даже на 1 млн записей
+        const sql = "SELECT account_id, type, SUM(amount) as total FROM transactions GROUP BY account_id, type";
+        const rows = JSON.parse(window.Android.querySql(DB_NAME, sql));
         
         let balances = {};
         allAccounts.forEach(acc => balances[acc.id] = 0);
         let totalAll = 0;
 
-        allTx.forEach(tx => {
-            const amt = parseFloat(tx.amount);
-            const accId = tx.account_id || 1; 
-            
+        rows.forEach(row => {
+            const accId = row.account_id || 1;
+            const amt = parseFloat(row.total);
             if (balances[accId] !== undefined) {
-                if (tx.type === 'income') { balances[accId] += amt; totalAll += amt; } 
+                if (row.type === 'income') { balances[accId] += amt; totalAll += amt; } 
                 else { balances[accId] -= amt; totalAll -= amt; }
             }
         });
@@ -223,107 +310,187 @@
         const icons = { 'cash': 'fa-wallet', 'card': 'fa-credit-card', 'credit': 'fa-building-columns' };
 
         allAccounts.forEach(acc => {
-            const balance = balances[acc.id] || 0;
             accContainer.innerHTML += `
                 <div class="card account-card shadow-sm acc-${acc.type}">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <i class="fa-solid ${icons[acc.type] || 'fa-wallet'} fs-5 opacity-75"></i>
                     </div>
                     <small class="opacity-75 text-truncate d-block" style="max-width: 100px;">${acc.name}</small>
-                    <h5 class="fw-bold mb-0 mt-1">${balance.toLocaleString('ru-RU')} ₽</h5>
+                    <h5 class="fw-bold mb-0 mt-1">${balances[acc.id].toLocaleString('ru-RU')} ₽</h5>
                 </div>
             `;
         });
-
-        accContainer.innerHTML += `
-            <div class="card account-card shadow-sm acc-add" onclick="showAddAccountModal()">
-                <i class="fa-solid fa-plus"></i>
-            </div>
-        `;
-
+        accContainer.innerHTML += `<div class="card account-card shadow-sm acc-add" onclick="showAddAccountModal()"><i class="fa-solid fa-plus"></i></div>`;
         document.getElementById('totalBalanceAll').innerText = totalAll.toLocaleString('ru-RU') + ' ₽';
+    }
 
-        const listContainer = document.getElementById('transactionsList');
-        listContainer.innerHTML = '';
-        if (allTransactions.length === 0) listContainer.innerHTML = '<p class="text-center text-muted mt-4">Нет операций</p>';
+    // === ПАГИНАЦИЯ ТРАНЗАКЦИЙ ===
+    function loadTransactions(reset = false) {
+        if (reset) {
+            currentOffset = 0;
+            hasMoreData = true;
+            document.getElementById('transactionsList').innerHTML = '';
+        }
 
-        allTransactions.forEach(tx => {
-            const isIncome = tx.type === 'income';
-            const sign = isIncome ? '+' : '-';
-            const colorClass = isIncome ? 'text-success' : '';
-            const iconClass = isIncome ? 'icon-income fa-arrow-down' : 'icon-expense fa-cart-shopping';
+        if (!hasMoreData || isLoading) return;
+        isLoading = true;
+
+        const sql = `SELECT * FROM transactions ORDER BY timestamp DESC LIMIT ${LOAD_LIMIT} OFFSET ${currentOffset}`;
+        try {
+            const newTx = JSON.parse(window.Android.querySql(DB_NAME, sql));
+            if (newTx.length < LOAD_LIMIT) hasMoreData = false;
+            currentOffset += newTx.length;
+            renderTxChunk(newTx, reset);
+        } catch (e) { console.error(e); }
+        
+        isLoading = false;
+    }
+
+    function renderTxChunk(txChunk, isReset) {
+        const container = document.getElementById('transactionsList');
+        if (isReset && txChunk.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted mt-4">Нет операций</p>';
+            return;
+        }
+
+        let html = '';
+        txChunk.forEach(tx => {
+            const isInc = tx.type === 'income';
+            const accName = (allAccounts.find(a => a.id === (tx.account_id || 1)) || {}).name || 'Счет удален';
             const dateStr = new Date(tx.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-            
-            const acc = allAccounts.find(a => a.id === (tx.account_id || 1));
-            const accName = acc ? acc.name : 'Счет удален';
+            // Сохраняем объект целиком в кнопку для простоты редактирования
+            const safeTx = JSON.stringify(tx).replace(/'/g, "&apos;").replace(/"/g, '&quot;');
 
-            // ИЗМЕНЕНИЕ: Теперь клик вызывает openEditTxModal, а не deleteTx
-            listContainer.innerHTML += `
-                <div class="card transaction-card shadow-sm mb-1" onclick="openEditTxModal(${tx.id})">
+            html += `
+                <div class="card transaction-card shadow-sm mb-1" onclick="openEditTxModal('${safeTx}')">
                     <div class="card-body p-3 d-flex align-items-center">
-                        <div class="icon-box ${isIncome ? 'icon-income' : 'icon-expense'} me-3">
-                            <i class="fa-solid ${iconClass}"></i>
+                        <div class="icon-box ${isInc ? 'icon-income' : 'icon-expense'} me-3">
+                            <i class="fa-solid ${isInc ? 'fa-arrow-down' : 'fa-cart-shopping'}"></i>
                         </div>
                         <div class="flex-grow-1 overflow-hidden">
                             <h6 class="mb-0 fw-bold text-truncate">${tx.category}</h6>
                             <small class="text-muted text-truncate d-block">${accName} • ${dateStr}</small>
                         </div>
                         <div class="text-end flex-shrink-0 ms-2">
-                            <h6 class="mb-0 fw-bold ${colorClass}">${sign}${parseFloat(tx.amount).toLocaleString('ru-RU')} ₽</h6>
+                            <h6 class="mb-0 fw-bold ${isInc ? 'text-success' : ''}">${isInc ? '+' : '-'}${parseFloat(tx.amount).toLocaleString('ru-RU')} ₽</h6>
                             ${tx.source_app === 'crm' ? '<span class="badge bg-info" style="font-size: 0.6rem;">CRM</span>' : ''}
                         </div>
                     </div>
                 </div>
             `;
         });
+        container.insertAdjacentHTML('beforeend', html);
     }
 
-    // === ЛОГИКА РЕДАКТИРОВАНИЯ И ДОБАВЛЕНИЯ ТРАНЗАКЦИЙ ===
+    window.addEventListener('scroll', () => {
+        if (document.getElementById('mainScreen').classList.contains('d-none')) return;
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
+            loadTransactions(false);
+        }
+    });
 
+    // === АНАЛИТИКА ===
+    function openStatsScreen() {
+        document.getElementById('mainScreen').classList.add('d-none');
+        document.getElementById('statsScreen').classList.remove('d-none');
+        window.scrollTo(0, 0);
+        history.pushState({ page: 'stats' }, "Stats", "#stats");
+        calculateStats();
+    }
+
+    function closeStatsScreen() { history.back(); }
+
+    function calculateStats() {
+        const period = document.getElementById('statsPeriod').value;
+        const now = new Date();
+        let startTime = 0, endTime = 4102444800000;
+
+        if (period === 'month') {
+            startTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        } else if (period === 'lastMonth') {
+            startTime = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+            endTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        } else if (period === 'year') {
+            startTime = new Date(now.getFullYear(), 0, 1).getTime();
+        }
+
+        // 1. Считаем Общие доходы и расходы
+        const sqlTotal = `SELECT type, SUM(amount) as total FROM transactions WHERE timestamp >= ${startTime} AND timestamp < ${endTime} GROUP BY type`;
+        let income = 0, expense = 0;
+        
+        try {
+            const res = JSON.parse(window.Android.querySql(DB_NAME, sqlTotal));
+            res.forEach(r => { if(r.type === 'income') income = r.total; else expense = r.total; });
+        } catch(e) {}
+
+        document.getElementById('statIncome').innerText = income.toLocaleString('ru-RU') + ' ₽';
+        document.getElementById('statExpense').innerText = expense.toLocaleString('ru-RU') + ' ₽';
+        const delta = income - expense;
+        const elDelta = document.getElementById('statDelta');
+        elDelta.innerText = (delta > 0 ? '+' : '') + delta.toLocaleString('ru-RU') + ' ₽';
+        elDelta.className = delta >= 0 ? "fs-4 fw-bold text-success" : "fs-4 fw-bold text-danger";
+
+        // 2. Считаем траты по Категориям (группировка SQL)
+        const sqlCat = `SELECT category, SUM(amount) as total FROM transactions WHERE type='expense' AND timestamp >= ${startTime} AND timestamp < ${endTime} GROUP BY category ORDER BY total DESC`;
+        const listCat = document.getElementById('categoryStatsList');
+        listCat.innerHTML = '';
+
+        try {
+            const cats = JSON.parse(window.Android.querySql(DB_NAME, sqlCat));
+            if(cats.length === 0) { listCat.innerHTML = '<p class="text-muted text-center">Нет расходов в этом периоде</p>'; return; }
+            
+            const maxVal = cats[0].total; // Берем максимум для 100% бара
+            
+            cats.forEach(c => {
+                const percent = Math.max(2, Math.round((c.total / maxVal) * 100)); // минимум 2% чтобы бар был виден
+                listCat.innerHTML += `
+                    <div class="stat-item">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold fs-6">${c.category}</span>
+                            <span class="fw-bold">${parseFloat(c.total).toLocaleString('ru-RU')} ₽</span>
+                        </div>
+                        <div class="stat-bar-container">
+                            <div class="stat-bar-fill" style="width: ${percent}%;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        } catch(e) {}
+    }
+
+    // === ФОРМЫ (Создание и Редактирование) ===
     function showAddModal() {
-        // Очищаем форму для создания НОВОЙ операции
         document.getElementById('txId').value = '';
         document.getElementById('txModalTitle').innerText = 'Новая операция';
         document.getElementById('txAmount').value = '';
         document.getElementById('txNote').value = '';
-        
-        // Прячем кнопку удаления
         document.getElementById('btnDeleteTx').classList.add('d-none');
-        
         updateCategorySelect();
         addModal.show();
+        history.pushState({ page: 'modal' }, "Modal", "#modal");
     }
 
-    function openEditTxModal(id) {
-        // Находим транзакцию в загруженном массиве
-        const tx = allTransactions.find(t => t.id === id);
-        if (!tx) return;
-
-        // ВАЖНО: Защита от редактирования транзакций из CRM
+    function openEditTxModal(txJson) {
+        const tx = JSON.parse(txJson);
         if (tx.source_app === 'crm') {
-            alert("Эта операция привязана к рабочему заказу.\n\nДля изменения суммы или удаления, пожалуйста, отредактируйте сам заказ в мини-приложении 'CRM'.");
+            alert("Эта операция из CRM. Редактируйте сам заказ.");
             return;
         }
 
-        // Заполняем данные для РЕДАКТИРОВАНИЯ
         document.getElementById('txId').value = tx.id;
-        document.getElementById('txModalTitle').innerText = 'Редактировать операцию';
-        
-        // Переключаем радио-кнопку
+        document.getElementById('txModalTitle').innerText = 'Редактировать';
         if (tx.type === 'income') document.getElementById('typeIncome').checked = true;
         else document.getElementById('typeExpense').checked = true;
         
-        // Обязательно обновляем список категорий перед тем как выбрать нужную
         updateCategorySelect();
-        
         document.getElementById('txAmount').value = tx.amount;
         document.getElementById('txAccount').value = tx.account_id || 1;
         document.getElementById('txCategory').value = tx.category;
         document.getElementById('txNote').value = tx.note || '';
-
-        // Показываем красную кнопку "Удалить"
         document.getElementById('btnDeleteTx').classList.remove('d-none');
+        
         addModal.show();
+        history.pushState({ page: 'modal' }, "Modal", "#modal");
     }
 
     function saveTransaction() {
@@ -334,100 +501,113 @@
         const accId = parseInt(document.getElementById('txAccount').value) || 1;
         const note = document.getElementById('txNote').value.replace(/'/g, "''");
         
-        if (isNaN(amount) || amount <= 0) { alert("Укажите корректную сумму"); return; }
+        if (isNaN(amount) || amount <= 0) { alert("Сумма?"); return; }
 
         if (id) {
-            // Если есть ID - обновляем существующую запись
-            window.Android.executeSql(DB_NAME, `
-                UPDATE transactions 
-                SET type='${type}', amount=${amount}, category='${category}', note='${note}', account_id=${accId} 
-                WHERE id=${id}
-            `);
+            window.Android.executeSql(DB_NAME, `UPDATE transactions SET type='${type}', amount=${amount}, category='${category}', note='${note}', account_id=${accId} WHERE id=${id}`);
         } else {
-            // Если ID нет - создаем новую
-            window.Android.executeSql(DB_NAME, `
-                INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) 
-                VALUES ('${type}', ${amount}, '${category}', '${note}', ${Date.now()}, 'finance', ${accId})
-            `);
+            window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('${type}', ${amount}, '${category}', '${note}', ${Date.now()}, 'finance', ${accId})`);
         }
         
         addModal.hide();
-        loadAllData();
+        updateBalancesFast();
+        loadTransactions(true);
     }
 
     function deleteTx() {
         const id = document.getElementById('txId').value;
-        if (!id) return; // Защита от случайного нажатия
-
-        if (confirm("Вы уверены, что хотите безвозвратно удалить эту операцию?")) {
+        if (confirm("Удалить операцию?")) {
             window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`);
             addModal.hide();
-            loadAllData();
+            updateBalancesFast();
+            loadTransactions(true);
         }
     }
 
-    // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (КАТЕГОРИИ И СЧЕТА) ===
-
+    // Вспомогательные
     function updateCategorySelect() {
         const type = document.querySelector('input[name="txType"]:checked').value;
         const select = document.getElementById('txCategory');
         select.innerHTML = '';
-        
-        const filtered = allCategories.filter(c => c.type === type);
-        if (filtered.length === 0) {
-            select.innerHTML = '<option value="">(Нет категорий)</option>';
-        } else {
-            filtered.forEach(c => select.innerHTML += `<option value="${c.name}">${c.name}</option>`);
-        }
+        allCategories.filter(c => c.type === type).forEach(c => select.innerHTML += `<option value="${c.name}">${c.name}</option>`);
     }
-
     function updateAccountSelect() {
         const select = document.getElementById('txAccount');
         select.innerHTML = '';
         allAccounts.forEach(a => select.innerHTML += `<option value="${a.id}">${a.name}</option>`);
     }
-
-    function showAddAccountModal() {
-        document.getElementById('newAccName').value = '';
-        accModal.show();
-    }
-
+    
+    // Счета и категории
+    function showAddAccountModal() { document.getElementById('newAccName').value = ''; accModal.show(); }
     function saveNewAccount() {
         const name = document.getElementById('newAccName').value.trim().replace(/'/g, "''");
         const type = document.getElementById('newAccType').value;
         if (!name) return;
-        
         window.Android.executeSql(DB_NAME, `INSERT INTO accounts (name, type) VALUES ('${name}', '${type}')`);
         accModal.hide();
-        loadAllData();
+        allAccounts = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM accounts ORDER BY id ASC"));
+        updateAccountSelect();
+        updateBalancesFast();
+        loadTransactions(true);
     }
-
     function showCategoryModal() {
         document.getElementById('newCategoryName').value = '';
-        const selectedType = document.querySelector('input[name="txType"]:checked').value;
-        const typeRu = selectedType === 'expense' ? 'расхода' : 'дохода';
-        document.getElementById('categoryModalTitle').innerText = `Новая категория ${typeRu}`;
-        
-        addModal.hide();
-        setTimeout(() => categoryModal.show(), 400); 
+        document.getElementById('categoryModalTitle').innerText = document.querySelector('input[name="txType"]:checked').value === 'expense' ? 'Новая категория расхода' : 'Новая категория дохода';
+        addModal.hide(); setTimeout(() => categoryModal.show(), 400); 
     }
-
     function saveNewCategory() {
         const name = document.getElementById('newCategoryName').value.trim().replace(/'/g, "''");
         if (!name) return;
-
         const type = document.querySelector('input[name="txType"]:checked').value;
         window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ('${name}', '${type}')`);
-        
         categoryModal.hide();
-        
         allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC"));
         updateCategorySelect();
+        setTimeout(() => { addModal.show(); document.getElementById('txCategory').value = name; }, 400);
+    }
+
+    // === ТЕСТИРОВАНИЕ ПРОИЗВОДИТЕЛЬНОСТИ ===
+    function generateTestTx() {
+        if (!confirm("Добавить 10 000 случайных операций?")) return;
+        const btn = document.getElementById('btnGenerate');
+        btn.disabled = true; btn.innerText = "Идет генерация...";
+
+        const catsInc = allCategories.filter(c => c.type === 'income');
+        const catsExp = allCategories.filter(c => c.type === 'expense');
+        let totalInserted = 0;
         
-        setTimeout(() => {
-            addModal.show();
-            document.getElementById('txCategory').value = name;
-        }, 400);
+        function insertBatch() {
+            let sql = "INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ";
+            let values = [];
+            for (let i = 0; i < 500; i++) {
+                const isInc = Math.random() > 0.7; // 30% доходов, 70% расходов
+                const type = isInc ? 'income' : 'expense';
+                const catArr = isInc ? catsInc : catsExp;
+                const cat = (catArr.length > 0 ? catArr[Math.floor(Math.random() * catArr.length)].name : 'Тест');
+                const amt = Math.floor(Math.random() * (isInc ? 50000 : 5000)) + 100;
+                const accId = allAccounts.length > 0 ? allAccounts[Math.floor(Math.random() * allAccounts.length)].id : 1;
+                // Раскидываем даты на последние 365 дней
+                const ts = Date.now() - Math.floor(Math.random() * 365 * 24 * 60 * 60 * 1000); 
+                values.push(`('${type}', ${amt}, '${cat}', 'Тест', ${ts}, 'finance', ${accId})`);
+            }
+            window.Android.executeSql(DB_NAME, sql + values.join(", "));
+            totalInserted += 500;
+            
+            if (totalInserted < 10000) {
+                btn.innerText = `Добавлено: ${totalInserted} / 10000`;
+                setTimeout(insertBatch, 20);
+            } else {
+                btn.disabled = false; btn.innerText = "Сгенерировать 10 000 записей";
+                updateBalancesFast(); loadTransactions(true); alert("Успешно добавлено!");
+            }
+        }
+        insertBatch();
+    }
+
+    function clearFinanceDb() {
+        if (!confirm("ВНИМАНИЕ! Удалить все операции (кроме CRM)?")) return;
+        window.Android.executeSql(DB_NAME, "DELETE FROM transactions WHERE source_app='finance'");
+        updateBalancesFast(); loadTransactions(true); alert("Очищено!");
     }
 
     window.addEventListener('DOMContentLoaded', initDb);
