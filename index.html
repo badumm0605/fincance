@@ -8,43 +8,52 @@
     <link href="file:///android_asset/fwa/css/all.min.css" rel="stylesheet">
     <style>
         body { background-color: #f5f7fa; padding-bottom: 80px; }
-        .balance-card {
-            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
-            color: white;
-            border-radius: 20px;
+        
+        /* Горизонтальный скролл для счетов */
+        .accounts-scroll {
+            display: flex; overflow-x: auto; gap: 12px; padding-bottom: 10px;
+            scrollbar-width: none; /* Firefox */
         }
+        .accounts-scroll::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
+        
+        /* Карточки счетов */
+        .account-card {
+            min-width: 140px; border-radius: 16px; color: white; padding: 16px;
+            position: relative; overflow: hidden; border: none;
+        }
+        .acc-cash { background: linear-gradient(135deg, #198754 0%, #146c43 100%); }
+        .acc-card { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); }
+        .acc-credit { background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%); }
+        .acc-add { background: #e9ecef; color: #6c757d; border: 2px dashed #ced4da; min-width: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px;}
+        
         .transaction-card { border-radius: 16px; border: none; }
         .icon-box {
-            width: 48px; height: 48px;
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 12px; font-size: 20px;
+            width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+            border-radius: 12px; font-size: 20px; flex-shrink: 0;
         }
         .icon-income { background-color: #d1e7dd; color: #198754; }
         .icon-expense { background-color: #f8d7da; color: #dc3545; }
+        
         .fab {
-            position: fixed; bottom: 24px; right: 24px;
-            width: 60px; height: 60px;
-            border-radius: 30px; font-size: 24px;
-            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+            position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px;
+            border-radius: 30px; font-size: 24px; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
             z-index: 1040; display: flex; align-items: center; justify-content: center;
         }
-        /* Чтобы модалки не перекрывали друг друга криво, настроим z-index */
-        #addCategoryModal { z-index: 1060; }
     </style>
 </head>
 <body>
 
 <div class="container py-3">
-    <div class="balance-card p-4 mb-4 shadow-sm">
-        <p class="mb-1 opacity-75">Общий баланс</p>
-        <h2 class="fw-bold mb-3" id="totalBalance">0 ₽</h2>
-        <div class="d-flex justify-content-between text-sm">
-            <div><i class="fa-solid fa-arrow-down text-success me-1"></i> <span id="totalIncome">0 ₽</span></div>
-            <div><i class="fa-solid fa-arrow-up text-danger me-1"></i> <span id="totalExpense">0 ₽</span></div>
-        </div>
+    
+    <div class="d-flex justify-content-between align-items-end mb-3 px-1">
+        <h5 class="fw-bold mb-0">Мои счета</h5>
+        <h5 class="fw-bold mb-0 text-primary" id="totalBalanceAll">0 ₽</h5>
     </div>
 
-    <h6 class="text-muted fw-bold mb-3 px-1">История операций</h6>
+    <div class="accounts-scroll px-1" id="accountsList">
+        </div>
+
+    <h6 class="text-muted fw-bold mb-3 mt-4 px-1">История операций</h6>
     <div id="transactionsList" class="d-flex flex-column gap-2"></div>
 </div>
 
@@ -63,7 +72,6 @@
                 <div class="btn-group w-100 mb-3" role="group">
                     <input type="radio" class="btn-check" name="txType" id="typeExpense" value="expense" checked onchange="updateCategorySelect()">
                     <label class="btn btn-outline-danger" for="typeExpense">Расход</label>
-
                     <input type="radio" class="btn-check" name="txType" id="typeIncome" value="income" onchange="updateCategorySelect()">
                     <label class="btn btn-outline-success" for="typeIncome">Доход</label>
                 </div>
@@ -73,15 +81,17 @@
                     <input type="number" id="txAmount" class="form-control form-control-lg fw-bold" placeholder="0" inputmode="decimal">
                 </div>
 
+                <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">Счет списания / пополнения</label>
+                    <select id="txAccount" class="form-select form-select-lg fw-bold text-primary">
+                        </select>
+                </div>
+
                 <div class="d-flex gap-2 mb-3 align-items-end">
                     <div class="flex-grow-1">
                         <label class="form-label text-muted small mb-1">Категория</label>
-                        <select id="txCategory" class="form-select form-select-lg">
-                            </select>
+                        <select id="txCategory" class="form-select form-select-lg"></select>
                     </div>
-                    <button class="btn btn-outline-primary" style="height: calc(1.5em + 1rem + 2px);" onclick="showCategoryModal()">
-                        <i class="fa-solid fa-folder-plus"></i>
-                    </button>
                 </div>
 
                 <div class="mb-4">
@@ -89,24 +99,33 @@
                     <input type="text" id="txNote" class="form-control" placeholder="Комментарий...">
                 </div>
 
-                <button class="btn btn-primary w-100 py-3 rounded-3 fw-bold" onclick="saveTransaction()">
-                    Сохранить
-                </button>
+                <button class="btn btn-primary w-100 py-3 rounded-3 fw-bold" onclick="saveTransaction()">Сохранить</button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="addCategoryModal" tabindex="-1">
+<div class="modal fade" id="addAccountModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header">
-                <h6 class="modal-title fw-bold" id="categoryModalTitle">Новая категория</h6>
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold">Добавить счет</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <input type="text" id="newCategoryName" class="form-control mb-3" placeholder="Название (например, Кофе)">
-                <button class="btn btn-primary w-100 fw-bold" onclick="saveNewCategory()">Добавить категорию</button>
+                <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">Название (например, Сбербанк)</label>
+                    <input type="text" id="newAccName" class="form-control" placeholder="Моя карта">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label text-muted small mb-1">Тип счета</label>
+                    <select id="newAccType" class="form-select">
+                        <option value="card">💳 Дебетовая карта</option>
+                        <option value="cash">💵 Наличные</option>
+                        <option value="credit">🏦 Кредитка / Долг</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary w-100 fw-bold" onclick="saveNewAccount()">Создать счет</button>
             </div>
         </div>
     </div>
@@ -115,202 +134,212 @@
 <script src="file:///android_asset/js/bootstrap.bundle.min.js"></script>
 <script>
     const DB_NAME = "finance_bus.db";
-    let allCategories = []; // Храним тут все категории из БД
+    let allCategories = [];
+    let allAccounts = [];
+    let allTransactions = [];
     
     const addModal = new bootstrap.Modal(document.getElementById('addModal'));
-    const categoryModal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
+    const accModal = new bootstrap.Modal(document.getElementById('addAccountModal'));
 
-    // 1. Инициализация БД и таблиц
     function initDb() {
-        if (!window.Android || !window.Android.executeSql) {
-            console.error("Android Bridge недоступен.");
-            return;
-        }
+        if (!window.Android) return;
 
-        // Таблица транзакций
-        window.Android.executeSql(DB_NAME, `
-            CREATE TABLE IF NOT EXISTS transactions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                type TEXT, 
-                amount REAL,
-                category TEXT,
-                note TEXT,
-                timestamp INTEGER,
-                source_app TEXT DEFAULT 'finance'
-            )
-        `);
+        // 1. Старые таблицы
+        window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, amount REAL, category TEXT, note TEXT, timestamp INTEGER, source_app TEXT DEFAULT 'finance')`);
+        window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT)`);
+        
+        // 2. Новая таблица счетов
+        window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT)`);
 
-        // Таблица категорий
-        window.Android.executeSql(DB_NAME, `
-            CREATE TABLE IF NOT EXISTS categories (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT,
-                type TEXT
-            )
-        `);
-
-        seedCategoriesIfEmpty();
-        loadCategories();
-        loadData();
-    }
-
-    // 2. Базовые категории (если БД пустая)
-    function seedCategoriesIfEmpty() {
-        const checkSql = "SELECT COUNT(*) as count FROM categories";
+        // 3. МИГРАЦИЯ: Безопасно добавляем колонку account_id в transactions (если ее нет)
         try {
-            const res = JSON.parse(window.Android.querySql(DB_NAME, checkSql));
-            if (res[0] && res[0].count === 0) {
-                const defaults = [
-                    "('Продукты', 'expense')", "('Транспорт', 'expense')", 
-                    "('Здоровье', 'expense')", "('Бизнес (Запчасти)', 'expense')",
-                    "('Зарплата', 'income')", "('Услуги ремонта', 'income')", "('Переводы', 'income')"
-                ];
-                window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ${defaults.join(',')}`);
+            window.Android.executeSql(DB_NAME, `ALTER TABLE transactions ADD COLUMN account_id INTEGER DEFAULT 1`);
+        } catch(e) {
+            // Если колонка уже есть, SQLite выдаст ошибку, мы ее просто игнорируем
+        }
+
+        seedDataIfEmpty();
+        loadAllData();
+    }
+
+    function seedDataIfEmpty() {
+        // Проверяем категории
+        try {
+            const resCat = JSON.parse(window.Android.querySql(DB_NAME, "SELECT COUNT(*) as c FROM categories"));
+            if (resCat[0].c === 0) {
+                const defCat = ["('Продукты', 'expense')", "('Транспорт', 'expense')", "('Бизнес (Запчасти)', 'expense')", "('Зарплата', 'income')", "('Услуги ремонта', 'income')"];
+                window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ${defCat.join(',')}`);
             }
-        } catch (e) {
-            console.error("Ошибка проверки категорий: ", e);
-        }
+        } catch (e) {}
+
+        // Проверяем счета
+        try {
+            const resAcc = JSON.parse(window.Android.querySql(DB_NAME, "SELECT COUNT(*) as c FROM accounts"));
+            if (resAcc[0].c === 0) {
+                // Создаем базовый счет с ID 1 (именно на него по умолчанию будут падать деньги из CRM)
+                window.Android.executeSql(DB_NAME, `INSERT INTO accounts (id, name, type) VALUES (1, 'Наличные', 'cash')`);
+                window.Android.executeSql(DB_NAME, `INSERT INTO accounts (id, name, type) VALUES (2, 'Основная карта', 'card')`);
+            }
+        } catch (e) {}
     }
 
-    // 3. Загрузка категорий и фильтрация
-    function loadCategories() {
-        const sql = "SELECT * FROM categories ORDER BY name ASC";
-        const jsonResult = window.Android.querySql(DB_NAME, sql);
-        allCategories = JSON.parse(jsonResult);
+    // === ЗАГРУЗКА И РАСЧЕТЫ ===
+    function loadAllData() {
+        allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC"));
+        allAccounts = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM accounts ORDER BY id ASC"));
+        allTransactions = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM transactions ORDER BY timestamp DESC LIMIT 100")); // Грузим 100 последних для списка
+        
         updateCategorySelect();
+        updateAccountSelect();
+        calculateAndRender();
     }
 
-    // Обновляет выпадающий список в зависимости от выбранного типа (Доход/Расход)
-    function updateCategorySelect() {
-        const selectedType = document.querySelector('input[name="txType"]:checked').value;
-        const select = document.getElementById('txCategory');
-        select.innerHTML = ''; // Очищаем список
-
-        const filtered = allCategories.filter(c => c.type === selectedType);
+    function calculateAndRender() {
+        // 1. Считаем балансы
+        // Для этого нужно загрузить ВСЕ транзакции, чтобы баланс был точным
+        const allTx = JSON.parse(window.Android.querySql(DB_NAME, "SELECT type, amount, account_id FROM transactions"));
         
-        if (filtered.length === 0) {
-            select.innerHTML = '<option value="">(Нет категорий)</option>';
-            return;
-        }
+        let balances = {};
+        allAccounts.forEach(acc => balances[acc.id] = 0);
+        let totalAll = 0;
 
-        filtered.forEach(cat => {
-            select.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
+        allTx.forEach(tx => {
+            const amt = parseFloat(tx.amount);
+            const accId = tx.account_id || 1; // Защита от старых записей
+            
+            if (balances[accId] !== undefined) {
+                if (tx.type === 'income') {
+                    balances[accId] += amt;
+                    totalAll += amt;
+                } else {
+                    balances[accId] -= amt;
+                    totalAll -= amt;
+                }
+            }
         });
-    }
 
-    // 4. Добавление своей категории
-    function showCategoryModal() {
-        document.getElementById('newCategoryName').value = '';
-        const selectedType = document.querySelector('input[name="txType"]:checked').value;
-        const typeRu = selectedType === 'expense' ? 'расхода' : 'дохода';
-        document.getElementById('categoryModalTitle').innerText = `Новая категория ${typeRu}`;
+        // 2. Рисуем карточки счетов
+        const accContainer = document.getElementById('accountsList');
+        accContainer.innerHTML = '';
         
-        // Временно прячем основную модалку, чтобы экран не затемнялся дважды (баг Bootstrap)
-        addModal.hide();
-        setTimeout(() => categoryModal.show(), 400); 
-    }
+        const icons = { 'cash': 'fa-wallet', 'card': 'fa-credit-card', 'credit': 'fa-building-columns' };
 
-    function saveNewCategory() {
-        const name = document.getElementById('newCategoryName').value.trim().replace(/'/g, "''");
-        if (!name) return;
+        allAccounts.forEach(acc => {
+            const balance = balances[acc.id] || 0;
+            accContainer.innerHTML += `
+                <div class="card account-card shadow-sm acc-${acc.type}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <i class="fa-solid ${icons[acc.type] || 'fa-wallet'} fs-5 opacity-75"></i>
+                    </div>
+                    <small class="opacity-75 text-truncate d-block" style="max-width: 100px;">${acc.name}</small>
+                    <h5 class="fw-bold mb-0 mt-1">${balance.toLocaleString('ru-RU')} ₽</h5>
+                </div>
+            `;
+        });
 
-        const type = document.querySelector('input[name="txType"]:checked').value;
-        
-        window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ('${name}', '${type}')`);
-        
-        categoryModal.hide();
-        loadCategories(); // Подтягиваем новые категории
-        
-        // Возвращаем основную модалку
-        setTimeout(() => addModal.show(), 400);
-    }
+        // Кнопка добавления счета
+        accContainer.innerHTML += `
+            <div class="card account-card shadow-sm acc-add" onclick="showAddAccountModal()">
+                <i class="fa-solid fa-plus"></i>
+            </div>
+        `;
 
-    // 5. Загрузка и рендер транзакций
-    function loadData() {
-        const sql = "SELECT * FROM transactions ORDER BY timestamp DESC";
-        const jsonResult = window.Android.querySql(DB_NAME, sql);
-        renderUI(JSON.parse(jsonResult));
-    }
+        document.getElementById('totalBalanceAll').innerText = totalAll.toLocaleString('ru-RU') + ' ₽';
 
-    function renderUI(transactions) {
-        let totalIncome = 0;
-        let totalExpense = 0;
+        // 3. Рисуем список транзакций
         const listContainer = document.getElementById('transactionsList');
         listContainer.innerHTML = '';
+        
+        if (allTransactions.length === 0) listContainer.innerHTML = '<p class="text-center text-muted mt-4">Нет операций</p>';
 
-        if (transactions.length === 0) {
-            listContainer.innerHTML = '<p class="text-center text-muted mt-4">Нет операций</p>';
-        }
-
-        transactions.forEach(tx => {
-            const amount = parseFloat(tx.amount);
-            if (tx.type === 'income') totalIncome += amount;
-            else totalExpense += amount;
-
+        allTransactions.forEach(tx => {
             const isIncome = tx.type === 'income';
             const sign = isIncome ? '+' : '-';
             const colorClass = isIncome ? 'text-success' : '';
             const iconClass = isIncome ? 'icon-income fa-arrow-down' : 'icon-expense fa-cart-shopping';
-            
             const dateStr = new Date(tx.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            
+            // Находим имя счета
+            const acc = allAccounts.find(a => a.id === (tx.account_id || 1));
+            const accName = acc ? acc.name : 'Счет удален';
 
             listContainer.innerHTML += `
                 <div class="card transaction-card shadow-sm mb-1" onclick="deleteTx(${tx.id})">
                     <div class="card-body p-3 d-flex align-items-center">
-                        <div class="icon-box ${isIncome ? 'icon-income' : 'icon-expense'} me-3 flex-shrink-0">
+                        <div class="icon-box ${isIncome ? 'icon-income' : 'icon-expense'} me-3">
                             <i class="fa-solid ${iconClass}"></i>
                         </div>
                         <div class="flex-grow-1 overflow-hidden">
                             <h6 class="mb-0 fw-bold text-truncate">${tx.category}</h6>
-                            <small class="text-muted text-truncate d-block">${tx.note || dateStr}</small>
+                            <small class="text-muted text-truncate d-block">${accName} • ${dateStr}</small>
                         </div>
                         <div class="text-end flex-shrink-0 ms-2">
-                            <h6 class="mb-0 fw-bold ${colorClass}">${sign}${amount} ₽</h6>
+                            <h6 class="mb-0 fw-bold ${colorClass}">${sign}${parseFloat(tx.amount).toLocaleString('ru-RU')} ₽</h6>
                             ${tx.source_app === 'crm' ? '<span class="badge bg-info" style="font-size: 0.6rem;">CRM</span>' : ''}
                         </div>
                     </div>
                 </div>
             `;
         });
-
-        document.getElementById('totalBalance').innerText = (totalIncome - totalExpense) + ' ₽';
-        document.getElementById('totalIncome').innerText = totalIncome + ' ₽';
-        document.getElementById('totalExpense').innerText = totalExpense + ' ₽';
     }
 
-    // 6. Сохранение и удаление транзакций
+    // === ФОРМЫ И ДОБАВЛЕНИЕ ===
+    function updateCategorySelect() {
+        const type = document.querySelector('input[name="txType"]:checked').value;
+        const select = document.getElementById('txCategory');
+        select.innerHTML = '';
+        allCategories.filter(c => c.type === type).forEach(c => select.innerHTML += `<option value="${c.name}">${c.name}</option>`);
+    }
+
+    function updateAccountSelect() {
+        const select = document.getElementById('txAccount');
+        select.innerHTML = '';
+        allAccounts.forEach(a => select.innerHTML += `<option value="${a.id}">${a.name}</option>`);
+    }
+
     function showAddModal() {
         document.getElementById('txAmount').value = '';
         document.getElementById('txNote').value = '';
         addModal.show();
     }
 
+    function showAddAccountModal() {
+        document.getElementById('newAccName').value = '';
+        accModal.show();
+    }
+
+    function saveNewAccount() {
+        const name = document.getElementById('newAccName').value.trim().replace(/'/g, "''");
+        const type = document.getElementById('newAccType').value;
+        if (!name) return;
+        
+        window.Android.executeSql(DB_NAME, `INSERT INTO accounts (name, type) VALUES ('${name}', '${type}')`);
+        accModal.hide();
+        loadAllData();
+    }
+
     function saveTransaction() {
         const type = document.querySelector('input[name="txType"]:checked').value;
         const amount = parseFloat(document.getElementById('txAmount').value);
         const category = document.getElementById('txCategory').value;
+        const accId = parseInt(document.getElementById('txAccount').value) || 1;
         const note = document.getElementById('txNote').value.replace(/'/g, "''");
-        const ts = Date.now();
-
-        if (isNaN(amount) || amount <= 0) {
-            alert("Введите корректную сумму");
-            return;
-        }
-
-        const sql = `
-            INSERT INTO transactions (type, amount, category, note, timestamp, source_app) 
-            VALUES ('${type}', ${amount}, '${category}', '${note}', ${ts}, 'finance')
-        `;
         
-        window.Android.executeSql(DB_NAME, sql);
+        if (isNaN(amount) || amount <= 0) { alert("Сумма?"); return; }
+
+        window.Android.executeSql(DB_NAME, `
+            INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) 
+            VALUES ('${type}', ${amount}, '${category}', '${note}', ${Date.now()}, 'finance', ${accId})
+        `);
+        
         addModal.hide();
-        loadData();
+        loadAllData();
     }
 
     function deleteTx(id) {
         if (confirm("Удалить операцию?")) {
             window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`);
-            loadData();
+            loadAllData();
         }
     }
 
