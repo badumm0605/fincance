@@ -9,14 +9,12 @@
     <style>
         body { background-color: #f5f7fa; padding-bottom: 80px; }
         
-        /* Горизонтальный скролл для счетов */
         .accounts-scroll {
             display: flex; overflow-x: auto; gap: 12px; padding-bottom: 10px;
             scrollbar-width: none;
         }
         .accounts-scroll::-webkit-scrollbar { display: none; }
         
-        /* Карточки счетов */
         .account-card {
             min-width: 140px; border-radius: 16px; color: white; padding: 16px;
             position: relative; overflow: hidden; border: none;
@@ -26,7 +24,7 @@
         .acc-credit { background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%); }
         .acc-add { background: #e9ecef; color: #6c757d; border: 2px dashed #ced4da; min-width: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px;}
         
-        .transaction-card { border-radius: 16px; border: none; }
+        .transaction-card { border-radius: 16px; border: none; cursor: pointer; }
         .icon-box {
             width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
             border-radius: 12px; font-size: 20px; flex-shrink: 0;
@@ -40,14 +38,12 @@
             z-index: 1040; display: flex; align-items: center; justify-content: center;
         }
         
-        /* Модалка категорий поверх остальных */
         #addCategoryModal { z-index: 1060; }
     </style>
 </head>
 <body>
 
 <div class="container py-3">
-    
     <div class="d-flex justify-content-between align-items-end mb-3 px-1">
         <h5 class="fw-bold mb-0">Мои счета</h5>
         <h5 class="fw-bold mb-0 text-primary" id="totalBalanceAll">0 ₽</h5>
@@ -67,10 +63,12 @@
     <div class="modal-dialog modal-dialog-centered align-items-end mb-0" style="min-height: 100vh;">
         <div class="modal-content border-0 rounded-top-4" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Новая операция</h5>
+                <h5 class="modal-title fw-bold" id="txModalTitle">Новая операция</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <input type="hidden" id="txId">
+
                 <div class="btn-group w-100 mb-3" role="group">
                     <input type="radio" class="btn-check" name="txType" id="typeExpense" value="expense" checked onchange="updateCategorySelect()">
                     <label class="btn btn-outline-danger" for="typeExpense">Расход</label>
@@ -103,7 +101,8 @@
                     <input type="text" id="txNote" class="form-control" placeholder="Комментарий...">
                 </div>
 
-                <button class="btn btn-primary w-100 py-3 rounded-3 fw-bold" onclick="saveTransaction()">Сохранить</button>
+                <button class="btn btn-primary w-100 py-3 rounded-3 fw-bold mb-2" onclick="saveTransaction()">Сохранить</button>
+                <button class="btn btn-outline-danger w-100 py-2 rounded-3 d-none" id="btnDeleteTx" onclick="deleteTx()">Удалить операцию</button>
             </div>
         </div>
     </div>
@@ -258,8 +257,9 @@
             const acc = allAccounts.find(a => a.id === (tx.account_id || 1));
             const accName = acc ? acc.name : 'Счет удален';
 
+            // ИЗМЕНЕНИЕ: Теперь клик вызывает openEditTxModal, а не deleteTx
             listContainer.innerHTML += `
-                <div class="card transaction-card shadow-sm mb-1" onclick="deleteTx(${tx.id})">
+                <div class="card transaction-card shadow-sm mb-1" onclick="openEditTxModal(${tx.id})">
                     <div class="card-body p-3 d-flex align-items-center">
                         <div class="icon-box ${isIncome ? 'icon-income' : 'icon-expense'} me-3">
                             <i class="fa-solid ${iconClass}"></i>
@@ -277,6 +277,96 @@
             `;
         });
     }
+
+    // === ЛОГИКА РЕДАКТИРОВАНИЯ И ДОБАВЛЕНИЯ ТРАНЗАКЦИЙ ===
+
+    function showAddModal() {
+        // Очищаем форму для создания НОВОЙ операции
+        document.getElementById('txId').value = '';
+        document.getElementById('txModalTitle').innerText = 'Новая операция';
+        document.getElementById('txAmount').value = '';
+        document.getElementById('txNote').value = '';
+        
+        // Прячем кнопку удаления
+        document.getElementById('btnDeleteTx').classList.add('d-none');
+        
+        updateCategorySelect();
+        addModal.show();
+    }
+
+    function openEditTxModal(id) {
+        // Находим транзакцию в загруженном массиве
+        const tx = allTransactions.find(t => t.id === id);
+        if (!tx) return;
+
+        // ВАЖНО: Защита от редактирования транзакций из CRM
+        if (tx.source_app === 'crm') {
+            alert("Эта операция привязана к рабочему заказу.\n\nДля изменения суммы или удаления, пожалуйста, отредактируйте сам заказ в мини-приложении 'CRM'.");
+            return;
+        }
+
+        // Заполняем данные для РЕДАКТИРОВАНИЯ
+        document.getElementById('txId').value = tx.id;
+        document.getElementById('txModalTitle').innerText = 'Редактировать операцию';
+        
+        // Переключаем радио-кнопку
+        if (tx.type === 'income') document.getElementById('typeIncome').checked = true;
+        else document.getElementById('typeExpense').checked = true;
+        
+        // Обязательно обновляем список категорий перед тем как выбрать нужную
+        updateCategorySelect();
+        
+        document.getElementById('txAmount').value = tx.amount;
+        document.getElementById('txAccount').value = tx.account_id || 1;
+        document.getElementById('txCategory').value = tx.category;
+        document.getElementById('txNote').value = tx.note || '';
+
+        // Показываем красную кнопку "Удалить"
+        document.getElementById('btnDeleteTx').classList.remove('d-none');
+        addModal.show();
+    }
+
+    function saveTransaction() {
+        const id = document.getElementById('txId').value;
+        const type = document.querySelector('input[name="txType"]:checked').value;
+        const amount = parseFloat(document.getElementById('txAmount').value);
+        const category = document.getElementById('txCategory').value;
+        const accId = parseInt(document.getElementById('txAccount').value) || 1;
+        const note = document.getElementById('txNote').value.replace(/'/g, "''");
+        
+        if (isNaN(amount) || amount <= 0) { alert("Укажите корректную сумму"); return; }
+
+        if (id) {
+            // Если есть ID - обновляем существующую запись
+            window.Android.executeSql(DB_NAME, `
+                UPDATE transactions 
+                SET type='${type}', amount=${amount}, category='${category}', note='${note}', account_id=${accId} 
+                WHERE id=${id}
+            `);
+        } else {
+            // Если ID нет - создаем новую
+            window.Android.executeSql(DB_NAME, `
+                INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) 
+                VALUES ('${type}', ${amount}, '${category}', '${note}', ${Date.now()}, 'finance', ${accId})
+            `);
+        }
+        
+        addModal.hide();
+        loadAllData();
+    }
+
+    function deleteTx() {
+        const id = document.getElementById('txId').value;
+        if (!id) return; // Защита от случайного нажатия
+
+        if (confirm("Вы уверены, что хотите безвозвратно удалить эту операцию?")) {
+            window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`);
+            addModal.hide();
+            loadAllData();
+        }
+    }
+
+    // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (КАТЕГОРИИ И СЧЕТА) ===
 
     function updateCategorySelect() {
         const type = document.querySelector('input[name="txType"]:checked').value;
@@ -297,12 +387,6 @@
         allAccounts.forEach(a => select.innerHTML += `<option value="${a.id}">${a.name}</option>`);
     }
 
-    function showAddModal() {
-        document.getElementById('txAmount').value = '';
-        document.getElementById('txNote').value = '';
-        addModal.show();
-    }
-
     function showAddAccountModal() {
         document.getElementById('newAccName').value = '';
         accModal.show();
@@ -318,14 +402,12 @@
         loadAllData();
     }
 
-    // === ФУНКЦИИ КАТЕГОРИЙ ===
     function showCategoryModal() {
         document.getElementById('newCategoryName').value = '';
         const selectedType = document.querySelector('input[name="txType"]:checked').value;
         const typeRu = selectedType === 'expense' ? 'расхода' : 'дохода';
         document.getElementById('categoryModalTitle').innerText = `Новая категория ${typeRu}`;
         
-        // Прячем основную форму, открываем форму категории
         addModal.hide();
         setTimeout(() => categoryModal.show(), 400); 
     }
@@ -339,40 +421,13 @@
         
         categoryModal.hide();
         
-        // Подтягиваем новые категории из БД и обновляем выпадающий список
         allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC"));
         updateCategorySelect();
         
-        // Возвращаем основную модалку транзакции и выбираем свежую категорию
         setTimeout(() => {
             addModal.show();
             document.getElementById('txCategory').value = name;
         }, 400);
-    }
-
-    function saveTransaction() {
-        const type = document.querySelector('input[name="txType"]:checked').value;
-        const amount = parseFloat(document.getElementById('txAmount').value);
-        const category = document.getElementById('txCategory').value;
-        const accId = parseInt(document.getElementById('txAccount').value) || 1;
-        const note = document.getElementById('txNote').value.replace(/'/g, "''");
-        
-        if (isNaN(amount) || amount <= 0) { alert("Сумма?"); return; }
-
-        window.Android.executeSql(DB_NAME, `
-            INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) 
-            VALUES ('${type}', ${amount}, '${category}', '${note}', ${Date.now()}, 'finance', ${accId})
-        `);
-        
-        addModal.hide();
-        loadAllData();
-    }
-
-    function deleteTx(id) {
-        if (confirm("Удалить операцию?")) {
-            window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`);
-            loadAllData();
-        }
     }
 
     window.addEventListener('DOMContentLoaded', initDb);
