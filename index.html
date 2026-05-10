@@ -34,18 +34,36 @@
         .icon-income { background-color: #d1e7dd; color: #198754; }
         .icon-expense { background-color: #f8d7da; color: #dc3545; }
         
+        /* Основная плавающая кнопка */
         .fab {
             position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px;
             border-radius: 30px; font-size: 24px; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
             z-index: 1040; display: flex; align-items: center; justify-content: center;
         }
+
+        /* КНОПКА "НАВЕРХ" */
+        .scroll-top-btn {
+            position: fixed; bottom: 95px; right: 24px; width: 50px; height: 50px;
+            border-radius: 25px; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1030; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: 0.3s ease-in-out; 
+            background-color: white; color: #6c757d; border: none;
+        }
+        .scroll-top-btn.visible {
+            opacity: 1; visibility: visible;
+        }
         
         #addCategoryModal { z-index: 1060; }
 
-        /* ИСПРАВЛЕНИЕ БАГА MORRIS (НАЕЗЖАНИЕ ПОДСКАЗКИ И ШРИФТЫ) */
         .morris-hover { position: absolute; z-index: 1000 !important; }
         .chart-container-card { overflow: visible !important; } 
         .morris-default-style { font-family: inherit; }
+
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(240, 242, 245, 0.85); backdrop-filter: blur(2px);
+            z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -105,7 +123,7 @@
             <div id="customMonthSelector" class="d-none animate__animated animate__fadeIn">
                 <div class="row g-2">
                     <div class="col-7">
-                        <select id="statsMonth" class="form-select border-0 shadow-sm fw-bold" onchange="calculateStats()">
+                        <select id="statsMonth" class="form-select border-0 shadow-sm fw-bold" onchange="triggerCalculateStats()">
                             <option value="0">Январь</option><option value="1">Февраль</option><option value="2">Март</option>
                             <option value="3">Апрель</option><option value="4">Май</option><option value="5">Июнь</option>
                             <option value="6">Июль</option><option value="7">Август</option><option value="8">Сентябрь</option>
@@ -113,7 +131,7 @@
                         </select>
                     </div>
                     <div class="col-5">
-                        <select id="statsYear" class="form-select border-0 shadow-sm fw-bold" onchange="calculateStats()"></select>
+                        <select id="statsYear" class="form-select border-0 shadow-sm fw-bold" onchange="triggerCalculateStats()"></select>
                     </div>
                 </div>
             </div>
@@ -175,6 +193,15 @@
     </div>
 </div>
 
+<div id="loadingOverlay" class="loading-overlay d-none">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+    <h6 class="mt-3 fw-bold text-dark opacity-75">Считаем статистику...</h6>
+</div>
+
+<button id="scrollTopBtn" class="scroll-top-btn" onclick="scrollToTop()">
+    <i class="fa-solid fa-arrow-up"></i>
+</button>
+
 <div class="modal fade" id="addModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered align-items-end mb-0" style="min-height: 100vh;">
         <div class="modal-content border-0 rounded-top-4" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
@@ -222,6 +249,10 @@
     let isLoading = false;
     let hasMoreData = true;
 
+    let statsOffset = 0;
+    let statsIsLoading = false;
+    let statsHasMoreData = true;
+
     const addModal = new bootstrap.Modal(document.getElementById('addModal'));
     const accModal = new bootstrap.Modal(document.getElementById('addAccountModal'));
     const categoryModal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
@@ -233,6 +264,9 @@
         if (!state || !state.page) {
             document.getElementById('statsScreen').classList.add('d-none');
             document.getElementById('mainScreen').classList.remove('d-none');
+            // При возврате на главную, пересчитываем балансы (если что-то менялось в стате)
+            updateBalancesFast();
+            loadTransactions(true);
         } else if (state.page === 'stats') {
             document.getElementById('mainScreen').classList.add('d-none');
             document.getElementById('statsScreen').classList.remove('d-none');
@@ -322,6 +356,22 @@
         isLoading = false;
     }
 
+    function loadStatsTransactions(reset = false) {
+        if (reset) { statsOffset = 0; statsHasMoreData = true; document.getElementById('statsTransactionsList').innerHTML = ''; }
+        if (!statsHasMoreData || statsIsLoading) return;
+        statsIsLoading = true;
+
+        const range = getStatsDateRange();
+        const sql = `SELECT * FROM transactions WHERE timestamp >= ${range.startTime} AND timestamp < ${range.endTime} ORDER BY timestamp DESC LIMIT ${LOAD_LIMIT} OFFSET ${statsOffset}`;
+        try {
+            const newTx = JSON.parse(window.Android.querySql(DB_NAME, sql));
+            if (newTx.length < LOAD_LIMIT) statsHasMoreData = false;
+            statsOffset += newTx.length;
+            renderTxChunk(newTx, 'statsTransactionsList', reset);
+        } catch (e) {}
+        statsIsLoading = false;
+    }
+
     function renderTxChunk(txChunk, containerId, isReset) {
         const container = document.getElementById(containerId);
         if (isReset && txChunk.length === 0) { container.innerHTML = '<p class="text-center text-muted mt-4">Нет операций</p>'; return; }
@@ -352,10 +402,30 @@
         container.insertAdjacentHTML('beforeend', html);
     }
 
+    // === УПРАВЛЕНИЕ СКРОЛЛОМ И КНОПКОЙ "НАВЕРХ" ===
     window.addEventListener('scroll', () => {
-        if (document.getElementById('mainScreen').classList.contains('d-none')) return;
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) loadTransactions(false);
+        const scrollTopBtn = document.getElementById('scrollTopBtn');
+        
+        // Логика появления кнопки "Наверх"
+        if (window.scrollY > 300) {
+            scrollTopBtn.classList.add('visible');
+        } else {
+            scrollTopBtn.classList.remove('visible');
+        }
+
+        // Логика бесконечного скролла
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
+            if (!document.getElementById('mainScreen').classList.contains('d-none')) {
+                loadTransactions(false);
+            } else if (!document.getElementById('statsScreen').classList.contains('d-none')) {
+                loadStatsTransactions(false);
+            }
+        }
     });
+
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     // === АНАЛИТИКА ===
     function openStatsScreen() {
@@ -371,7 +441,7 @@
 
         window.scrollTo(0, 0);
         history.pushState({ page: 'stats' }, "Stats", "#stats");
-        calculateStats();
+        triggerCalculateStats();
     }
 
     function closeStatsScreen() { history.back(); }
@@ -381,10 +451,10 @@
         const customBox = document.getElementById('customMonthSelector');
         if (period === 'custom') customBox.classList.remove('d-none');
         else customBox.classList.add('d-none');
-        calculateStats();
+        triggerCalculateStats();
     }
 
-    function calculateStats() {
+    function getStatsDateRange() {
         const period = document.getElementById('statsPeriod').value;
         const now = new Date();
         let startTime = 0, endTime = 4102444800000;
@@ -420,24 +490,34 @@
         } else if (period === 'all') {
             chartType = 'monthly';
         }
+        return { startTime, endTime, showLineChart, chartType };
+    }
 
-        const sql = `SELECT * FROM transactions WHERE timestamp >= ${startTime} AND timestamp < ${endTime} ORDER BY timestamp DESC`;
+    function triggerCalculateStats() {
+        document.getElementById('loadingOverlay').classList.remove('d-none');
+        setTimeout(() => {
+            calculateStats();
+            document.getElementById('loadingOverlay').classList.add('d-none');
+        }, 50);
+    }
+
+    function calculateStats() {
+        const range = getStatsDateRange();
+        const sql = `SELECT * FROM transactions WHERE timestamp >= ${range.startTime} AND timestamp < ${range.endTime}`;
         
         let totalIncome = 0, totalExpense = 0;
         let incomeCats = {}, expenseCats = {};
         let crmGross = 0, crmParts = 0;
         let chartDataMap = {}; 
-        let txForList = [];
 
         try {
             const rows = JSON.parse(window.Android.querySql(DB_NAME, sql));
             
-            rows.forEach((r, index) => {
+            rows.forEach((r) => {
                 const amt = parseFloat(r.amount);
                 
-                // Группировка для Line Chart
                 let d = new Date(r.timestamp);
-                let key = chartType === 'daily' 
+                let key = range.chartType === 'daily' 
                     ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
                     : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
                 
@@ -457,16 +537,12 @@
                         chartDataMap[key].rawExpense += amt;
                     }
                 }
-
-                // Сохраняем все транзакции для нижнего списка
-                txForList.push(r);
             });
 
-            // Вычисляем чистую прибыль от CRM
             const crmNet = crmGross - crmParts;
             if (crmNet > 0) {
                 totalIncome += crmNet;
-                incomeCats['Услуги ремонта'] = (incomeCats['Услуги ремонта'] || 0) + crmNet;
+                incomeCats['Услуги ремонта (Чистыми)'] = (incomeCats['Услуги ремонта (Чистыми)'] || 0) + crmNet;
             } else if (crmNet < 0) {
                 totalExpense += Math.abs(crmNet);
                 expenseCats['Убыток по ремонтам'] = (expenseCats['Убыток по ремонтам'] || 0) + Math.abs(crmNet);
@@ -479,9 +555,8 @@
             elDelta.innerText = (delta > 0 ? '+' : '') + Number(delta).toLocaleString('ru-RU') + ' ₽';
             elDelta.className = delta >= 0 ? "fs-4 fw-bold text-success" : "fs-4 fw-bold text-danger";
 
-            // === ОТРИСОВКА MORRIS LINE CHART ===
             const chartContainerNode = document.getElementById('financeChartContainer');
-            if (!showLineChart || Object.keys(chartDataMap).length === 0) {
+            if (!range.showLineChart || Object.keys(chartDataMap).length === 0) {
                 chartContainerNode.classList.add('d-none');
             } else {
                 chartContainerNode.classList.remove('d-none');
@@ -490,15 +565,13 @@
                     let data = chartDataMap[key];
                     let finalIncome = data.rawIncome;
                     let finalExpense = data.rawExpense;
-
                     let bucketCrmNet = data.crmGross - data.crmParts;
                     if (bucketCrmNet > 0) finalIncome += bucketCrmNet;
                     else if (bucketCrmNet < 0) finalExpense += Math.abs(bucketCrmNet);
-
                     chartArray.push({ period: key, income: finalIncome, expense: finalExpense });
                 });
 
-                document.getElementById('chartTitle').innerText = chartType === 'daily' ? 'Динамика по дням' : 'Динамика по месяцам';
+                document.getElementById('chartTitle').innerText = range.chartType === 'daily' ? 'Динамика по дням' : 'Динамика по месяцам';
                 document.getElementById('financeChart').innerHTML = ''; 
                 
                 if (window.Morris) {
@@ -523,18 +596,14 @@
                 }
             }
 
-            // === ОТРИСОВКА MORRIS DONUT И ЛЕГЕНДЫ ===
             renderDonutWithLegend('incomeDonutChart', 'categoryStatsIncomeList', 'incomeStatsContainer', incomeCats);
             renderDonutWithLegend('expenseDonutChart', 'categoryStatsExpenseList', 'expenseStatsContainer', expenseCats);
 
-            // Отрисовка списка транзакций за период
-            document.getElementById('statsTransactionsList').innerHTML = '';
-            renderTxChunk(txForList, 'statsTransactionsList', true);
+            loadStatsTransactions(true);
 
         } catch(e) { console.error("Ошибка аналитики: ", e); }
     }
 
-    // Универсальная функция для отрисовки Бублика + Цветной легенды
     function renderDonutWithLegend(donutId, legendId, containerId, catsObj) {
         const containerNode = document.getElementById(containerId);
         const donutNode = document.getElementById(donutId);
@@ -551,9 +620,7 @@
         }
         containerNode.classList.remove('d-none');
 
-        // Яркая, контрастная палитра для категорий
         const palette = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#8AC926', '#1982C4', '#F15BB5', '#00BBF9', '#FEE440', '#00F5D4'];
-
         let donutData = [];
         let colors = [];
         let legendHtml = '';
@@ -561,11 +628,8 @@
         keys.forEach((cat, index) => {
             const color = palette[index % palette.length];
             const val = catsObj[cat];
-
             donutData.push({ label: cat, value: val });
             colors.push(color);
-
-            // Красивая цветная легенда под графиком
             legendHtml += `
                 <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded-3 shadow-sm border-0">
                     <div class="d-flex align-items-center overflow-hidden pe-2">
@@ -586,7 +650,6 @@
                 formatter: function (y) { return Number(y).toLocaleString('ru-RU') + ' ₽'; }
             });
         }
-
         legendNode.innerHTML = legendHtml;
     }
 
@@ -608,8 +671,13 @@
         
         addModal.hide(); 
         updateBalancesFast(); 
-        loadTransactions(true); 
-        if (!document.getElementById('statsScreen').classList.contains('d-none')) calculateStats();
+        
+        // Обновляем списки в зависимости от того, какой экран открыт
+        if (!document.getElementById('mainScreen').classList.contains('d-none')) {
+            loadTransactions(true); 
+        } else if (!document.getElementById('statsScreen').classList.contains('d-none')) {
+            triggerCalculateStats();
+        }
     }
     
     function deleteTx() { 
@@ -618,8 +686,11 @@
             window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`); 
             addModal.hide(); 
             updateBalancesFast(); 
-            loadTransactions(true); 
-            if (!document.getElementById('statsScreen').classList.contains('d-none')) calculateStats();
+            if (!document.getElementById('mainScreen').classList.contains('d-none')) {
+                loadTransactions(true); 
+            } else if (!document.getElementById('statsScreen').classList.contains('d-none')) {
+                triggerCalculateStats();
+            }
         } 
     }
 
@@ -654,7 +725,7 @@
             window.Android.executeSql(DB_NAME, sql + values.join(", "));
             totalInserted += 500;
             if (totalInserted < 10000) { btn.innerText = `Добавлено: ${totalInserted} / 10000`; setTimeout(insertBatch, 20); } 
-            else { btn.disabled = false; btn.innerText = "Сгенерировать 10 000 записей"; updateBalancesFast(); loadTransactions(true); if (!document.getElementById('statsScreen').classList.contains('d-none')) calculateStats(); alert("Успешно добавлено!"); }
+            else { btn.disabled = false; btn.innerText = "Сгенерировать 10 000 записей"; updateBalancesFast(); loadTransactions(true); if (!document.getElementById('statsScreen').classList.contains('d-none')) triggerCalculateStats(); alert("Успешно добавлено!"); }
         }
         insertBatch();
     }
@@ -662,7 +733,7 @@
     function clearFinanceDb() {
         if (!confirm("ВНИМАНИЕ! Удалить все операции (кроме CRM)?")) return;
         window.Android.executeSql(DB_NAME, "DELETE FROM transactions WHERE source_app='finance'");
-        updateBalancesFast(); loadTransactions(true); if (!document.getElementById('statsScreen').classList.contains('d-none')) calculateStats(); alert("Очищено!");
+        updateBalancesFast(); loadTransactions(true); if (!document.getElementById('statsScreen').classList.contains('d-none')) triggerCalculateStats(); alert("Очищено!");
     }
 
     window.addEventListener('DOMContentLoaded', initDb);
