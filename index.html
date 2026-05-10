@@ -6,9 +6,8 @@
     <title>Финансы</title>
     <link href="file:///android_asset/css/bootstrap.min.css" rel="stylesheet">
     <link href="file:///android_asset/fwa/css/all.min.css" rel="stylesheet">
+    <link href="file:///android_asset/css/morris.css" rel="stylesheet">
     
-    <link href="file:///android_asset/css/morris.min.css" rel="stylesheet">
-
     <style>
         body { background-color: #f5f7fa; padding-bottom: 80px; }
         
@@ -43,10 +42,12 @@
         
         #addCategoryModal { z-index: 1060; }
 
-        /* Стили для CSS графиков аналитики */
-        .stat-bar-container { width: 100%; background-color: #e9ecef; border-radius: 8px; height: 12px; overflow: hidden; margin-top: 6px; }
-        .stat-bar-fill { height: 100%; border-radius: 8px; }
-        .stat-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        /* ИСПРАВЛЕНИЕ БАГА MORRIS (НАЕЗЖАНИЕ ПОДСКАЗКИ) */
+        .morris-hover { position: absolute; z-index: 1000 !important; }
+        .chart-container-card { overflow: visible !important; } /* Чтобы подсказка не обрезалась краями карточки */
+        
+        /* Фикс для шрифта внутри Donut Chart */
+        .morris-default-style { font-family: inherit; }
     </style>
 </head>
 <body>
@@ -107,12 +108,10 @@
                 <div class="row g-2">
                     <div class="col-7">
                         <select id="statsMonth" class="form-select border-0 shadow-sm fw-bold" onchange="calculateStats()">
-                            <option value="0">Январь</option><option value="1">Февраль</option>
-                            <option value="2">Март</option><option value="3">Апрель</option>
-                            <option value="4">Май</option><option value="5">Июнь</option>
-                            <option value="6">Июль</option><option value="7">Август</option>
-                            <option value="8">Сентябрь</option><option value="9">Октябрь</option>
-                            <option value="10">Ноябрь</option><option value="11">Декабрь</option>
+                            <option value="0">Январь</option><option value="1">Февраль</option><option value="2">Март</option>
+                            <option value="3">Апрель</option><option value="4">Май</option><option value="5">Июнь</option>
+                            <option value="6">Июль</option><option value="7">Август</option><option value="8">Сентябрь</option>
+                            <option value="9">Октябрь</option><option value="10">Ноябрь</option><option value="11">Декабрь</option>
                         </select>
                     </div>
                     <div class="col-5">
@@ -149,18 +148,30 @@
             </div>
         </div>
 
-        <div id="financeChartContainer" class="card border-0 shadow-sm mb-4 d-none">
+        <div id="financeChartContainer" class="card border-0 shadow-sm mb-4 chart-container-card d-none">
             <div class="card-body p-2 pt-3">
                 <h6 class="text-muted fw-bold mb-3 px-2 text-center" id="chartTitle">Динамика</h6>
                 <div id="financeChart" style="height: 250px;"></div>
             </div>
         </div>
 
-        <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-arrow-down text-success me-2"></i>Доходы по категориям</h6>
-        <div id="categoryStatsIncomeList" class="d-flex flex-column mb-4"></div>
+        <div id="incomeDonutContainer" class="card border-0 shadow-sm mb-4 chart-container-card d-none">
+            <div class="card-body p-2 pt-3">
+                <h6 class="text-muted fw-bold mb-2 px-2 text-center"><i class="fa-solid fa-arrow-down text-success me-2"></i>Доходы</h6>
+                <div id="incomeDonutChart" style="height: 200px;"></div>
+            </div>
+        </div>
 
-        <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-arrow-up text-danger me-2"></i>Расходы по категориям</h6>
-        <div id="categoryStatsExpenseList" class="d-flex flex-column mb-5"></div>
+        <div id="expenseDonutContainer" class="card border-0 shadow-sm mb-4 chart-container-card d-none">
+            <div class="card-body p-2 pt-3">
+                <h6 class="text-muted fw-bold mb-2 px-2 text-center"><i class="fa-solid fa-arrow-up text-danger me-2"></i>Расходы</h6>
+                <div id="expenseDonutChart" style="height: 200px;"></div>
+            </div>
+        </div>
+
+        <h6 class="text-muted fw-bold mb-3 px-1 mt-4">Операции за выбранный период</h6>
+        <div id="statsTransactionsList" class="d-flex flex-column gap-2 mb-5"></div>
+
     </div>
 </div>
 
@@ -197,7 +208,7 @@
 <div class="modal fade" id="addCategoryModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow"><div class="modal-header border-0 pb-0"><h6 class="modal-title fw-bold" id="categoryModalTitle">Новая категория</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="text" id="newCategoryName" class="form-control mb-3" placeholder="Название (например, Кофе)"><button class="btn btn-primary w-100 fw-bold" onclick="saveNewCategory()">Добавить</button></div></div></div></div>
 
 <script src="file:///android_asset/js/jquery.min.js"></script>
-<script src="file:///android_asset/js/raphael-min.js"></script>
+<script src="file:///android_asset/js/raphael.min.js"></script>
 <script src="file:///android_asset/js/morris.min.js"></script>
 <script src="file:///android_asset/js/bootstrap.bundle.min.js"></script>
 
@@ -215,7 +226,6 @@
     const accModal = new bootstrap.Modal(document.getElementById('addAccountModal'));
     const categoryModal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
 
-    // === ИСТОРИЯ ===
     window.addEventListener('popstate', function(event) {
         const state = event.state;
         if (document.getElementById('addModal').classList.contains('show')) addModal.hide();
@@ -233,7 +243,6 @@
         if (history.state && history.state.page === 'modal') history.back();
     });
 
-    // === ИНИЦИАЛИЗАЦИЯ ===
     function initDb() {
         if (!window.Android) return;
         window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, amount REAL, category TEXT, note TEXT, timestamp INTEGER, source_app TEXT DEFAULT 'finance')`);
@@ -264,7 +273,6 @@
         } catch (e) {}
     }
 
-    // === БАЛАНСЫ ===
     function updateBalancesFast() {
         const sql = "SELECT account_id, type, SUM(amount) as total FROM transactions GROUP BY account_id, type";
         const rows = JSON.parse(window.Android.querySql(DB_NAME, sql));
@@ -299,7 +307,6 @@
         document.getElementById('totalBalanceAll').innerText = Number(totalAll).toLocaleString('ru-RU') + ' ₽';
     }
 
-    // === ПАГИНАЦИЯ ТРАНЗАКЦИЙ ===
     function loadTransactions(reset = false) {
         if (reset) { currentOffset = 0; hasMoreData = true; document.getElementById('transactionsList').innerHTML = ''; }
         if (!hasMoreData || isLoading) return;
@@ -310,13 +317,13 @@
             const newTx = JSON.parse(window.Android.querySql(DB_NAME, sql));
             if (newTx.length < LOAD_LIMIT) hasMoreData = false;
             currentOffset += newTx.length;
-            renderTxChunk(newTx, reset);
-        } catch (e) { console.error(e); }
+            renderTxChunk(newTx, 'transactionsList', reset);
+        } catch (e) {}
         isLoading = false;
     }
 
-    function renderTxChunk(txChunk, isReset) {
-        const container = document.getElementById('transactionsList');
+    function renderTxChunk(txChunk, containerId, isReset) {
+        const container = document.getElementById(containerId);
         if (isReset && txChunk.length === 0) { container.innerHTML = '<p class="text-center text-muted mt-4">Нет операций</p>'; return; }
 
         let html = '';
@@ -350,18 +357,15 @@
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) loadTransactions(false);
     });
 
-    // === АНАЛИТИКА (УЛУЧШЕННАЯ С MORRIS) ===
+    // === АНАЛИТИКА ===
     function openStatsScreen() {
         document.getElementById('mainScreen').classList.add('d-none');
         document.getElementById('statsScreen').classList.remove('d-none');
         
-        // Заполняем годы для Custom Month (от первого заказа до текущего)
         const yearSelect = document.getElementById('statsYear');
         if (yearSelect.options.length === 0) {
             const currentYear = new Date().getFullYear();
-            for (let y = currentYear; y >= 2023; y--) {
-                yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
-            }
+            for (let y = currentYear; y >= 2023; y--) yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
         }
         document.getElementById('statsMonth').value = new Date().getMonth();
 
@@ -385,7 +389,7 @@
         const now = new Date();
         let startTime = 0, endTime = 4102444800000;
         let showChart = true;
-        let chartType = 'daily'; // daily или monthly
+        let chartType = 'daily'; 
 
         if (period === 'today') {
             startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -417,32 +421,27 @@
             chartType = 'monthly';
         }
 
-        const sql = `SELECT * FROM transactions WHERE timestamp >= ${startTime} AND timestamp < ${endTime}`;
+        const sql = `SELECT * FROM transactions WHERE timestamp >= ${startTime} AND timestamp < ${endTime} ORDER BY timestamp DESC`;
         
-        let totalIncome = 0;
-        let totalExpense = 0;
-        let incomeCats = {};
-        let expenseCats = {};
-        let crmGross = 0;
-        let crmParts = 0;
-        
-        // Хранилище для группировки графика Morris
+        let totalIncome = 0, totalExpense = 0;
+        let incomeCats = {}, expenseCats = {};
+        let crmGross = 0, crmParts = 0;
         let chartDataMap = {}; 
+        let txForList = [];
 
         try {
             const rows = JSON.parse(window.Android.querySql(DB_NAME, sql));
             
-            rows.forEach(r => {
+            rows.forEach((r, index) => {
                 const amt = parseFloat(r.amount);
                 
-                // --- ГРУППИРОВКА ДЛЯ MORRIS ---
+                // Группировка для Line Chart
                 let d = new Date(r.timestamp);
                 let key = chartType === 'daily' 
                     ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
                     : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
                 
                 if (!chartDataMap[key]) chartDataMap[key] = { period: key, rawIncome: 0, rawExpense: 0, crmGross: 0, crmParts: 0 };
-                // ------------------------------
 
                 if (r.source_app === 'crm') {
                     if (r.type === 'income') { crmGross += amt; chartDataMap[key].crmGross += amt; }
@@ -458,13 +457,16 @@
                         chartDataMap[key].rawExpense += amt;
                     }
                 }
+
+                // Сохраняем первые 100 для отображения в списке внизу
+                if (index < 100) txForList.push(r);
             });
 
-            // Вычисляем чистую прибыль от CRM глобально
+            // Вычисляем чистую прибыль от CRM
             const crmNet = crmGross - crmParts;
             if (crmNet > 0) {
                 totalIncome += crmNet;
-                incomeCats['Услуги ремонта (Чистыми)'] = (incomeCats['Услуги ремонта (Чистыми)'] || 0) + crmNet;
+                incomeCats['Услуги ремонта'] = (incomeCats['Услуги ремонта'] || 0) + crmNet;
             } else if (crmNet < 0) {
                 totalExpense += Math.abs(crmNet);
                 expenseCats['Убыток по ремонтам'] = (expenseCats['Убыток по ремонтам'] || 0) + Math.abs(crmNet);
@@ -478,18 +480,12 @@
             elDelta.innerText = (delta > 0 ? '+' : '') + Number(delta).toLocaleString('ru-RU') + ' ₽';
             elDelta.className = delta >= 0 ? "fs-4 fw-bold text-success" : "fs-4 fw-bold text-danger";
 
-            // Отрисовка графиков прогресс-баров
-            renderStatBars('categoryStatsIncomeList', incomeCats, 'success');
-            renderStatBars('categoryStatsExpenseList', expenseCats, 'danger');
-
-            // --- ОТРИСОВКА MORRIS.JS ---
+            // === ОТРИСОВКА MORRIS LINE CHART ===
             const chartContainerNode = document.getElementById('financeChartContainer');
             if (!showChart || Object.keys(chartDataMap).length === 0) {
                 chartContainerNode.classList.add('d-none');
             } else {
                 chartContainerNode.classList.remove('d-none');
-                
-                // Подготавливаем массив
                 let chartArray = [];
                 Object.keys(chartDataMap).sort().forEach(key => {
                     let data = chartDataMap[key];
@@ -504,52 +500,100 @@
                 });
 
                 document.getElementById('chartTitle').innerText = chartType === 'daily' ? 'Динамика по дням' : 'Динамика по месяцам';
-                document.getElementById('financeChart').innerHTML = ''; // Очищаем старый
+                document.getElementById('financeChart').innerHTML = ''; 
                 
                 if (window.Morris) {
-                    new Morris.Bar({
+                    new Morris.Line({
                         element: 'financeChart',
                         data: chartArray,
                         xkey: 'period',
                         ykeys: ['income', 'expense'],
                         labels: ['Доход', 'Расход'],
-                        barColors: ['#198754', '#dc3545'],
+                        lineColors: ['#198754', '#dc3545'],
                         hideHover: 'auto',
-                        resize: true
+                        resize: true,
+                        parseTime: false, // Отключаем парсинг, чтобы даты по X отображались четко
+                        hoverCallback: function (index, options, content, row) {
+                            // Форматируем подсказку на графике
+                            return `<div class="p-2 fw-bold bg-white border rounded">
+                                        <div class="mb-1 text-dark">${row.period}</div>
+                                        <div style="color: #198754">Доход: ${Number(row.income).toLocaleString('ru-RU')} ₽</div>
+                                        <div style="color: #dc3545">Расход: ${Number(row.expense).toLocaleString('ru-RU')} ₽</div>
+                                    </div>`;
+                        }
                     });
-                } else {
-                    document.getElementById('financeChart').innerHTML = '<p class="text-danger text-center">Ошибка: не найден Morris.js</p>';
                 }
             }
 
-        } catch(e) { console.error("Ошибка подсчета аналитики: ", e); }
+            // === ОТРИСОВКА MORRIS DONUT CHARTS ===
+            renderDonutChart('incomeDonut', incomeCats, ['#198754', '#20c997', '#146c43', '#28a745', '#218838']);
+            renderDonutChart('expenseDonut', expenseCats, ['#dc3545', '#ff6b6b', '#c82333', '#e4606d', '#bd2130']);
+
+            // Отрисовка списка транзакций за период
+            document.getElementById('statsTransactionsList').innerHTML = '';
+            renderTxChunk(txForList, 'statsTransactionsList', true);
+
+        } catch(e) { console.error("Ошибка аналитики: ", e); }
     }
 
-    function renderStatBars(containerId, catsObj, colorMode) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = '';
-        const catArray = Object.keys(catsObj).map(k => ({ category: k, total: catsObj[k] })).sort((a, b) => b.total - a.total);
-        if(catArray.length === 0) { container.innerHTML = '<p class="text-muted text-center small mb-0">Нет данных</p>'; return; }
+    function renderDonutChart(prefix, catsObj, colorArray) {
+        const containerNode = document.getElementById(prefix + 'Container');
+        const chartNode = document.getElementById(prefix + 'Chart');
+        chartNode.innerHTML = ''; // Очищаем
+
+        if (Object.keys(catsObj).length === 0) {
+            containerNode.classList.add('d-none');
+            return;
+        }
+        containerNode.classList.remove('d-none');
+
+        let donutData = Object.keys(catsObj).map(k => ({ label: k, value: catsObj[k] }));
         
-        const maxVal = catArray[0].total; 
-        const gradient = colorMode === 'success' ? 'linear-gradient(90deg, #198754 0%, #20c997 100%)' : 'linear-gradient(90deg, #dc3545 0%, #ff6b6b 100%)';
-        
-        catArray.forEach(c => {
-            const percent = Math.max(2, Math.round((c.total / maxVal) * 100)); 
-            container.innerHTML += `
-                <div class="stat-item">
-                    <div class="d-flex justify-content-between mb-1"><span class="fw-bold fs-6">${c.category}</span><span class="fw-bold">${Number(c.total).toLocaleString('ru-RU')} ₽</span></div>
-                    <div class="stat-bar-container"><div class="stat-bar-fill" style="width: ${percent}%; background: ${gradient};"></div></div>
-                </div>`;
-        });
+        if (window.Morris) {
+            new Morris.Donut({
+                element: chartNode.id,
+                data: donutData,
+                colors: colorArray,
+                resize: true,
+                formatter: function (y) { return Number(y).toLocaleString('ru-RU') + ' ₽'; }
+            });
+        }
     }
 
-    // === ФОРМЫ И ТЕСТИРОВАНИЕ ===
-    // (Код форм и генератора остался идентичным, свернут для читаемости)
+    // === ФОРМЫ (Создание и Редактирование) ===
     function showAddModal() { document.getElementById('txId').value = ''; document.getElementById('txModalTitle').innerText = 'Новая операция'; document.getElementById('txAmount').value = ''; document.getElementById('txNote').value = ''; document.getElementById('btnDeleteTx').classList.add('d-none'); updateCategorySelect(); addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal"); }
     function openEditTxModal(txJson) { const tx = JSON.parse(txJson); if (tx.source_app === 'crm') { alert("Операция из CRM. Редактируйте сам заказ."); return; } document.getElementById('txId').value = tx.id; document.getElementById('txModalTitle').innerText = 'Редактировать'; if (tx.type === 'income') document.getElementById('typeIncome').checked = true; else document.getElementById('typeExpense').checked = true; updateCategorySelect(); document.getElementById('txAmount').value = tx.amount; document.getElementById('txAccount').value = tx.account_id || 1; document.getElementById('txCategory').value = tx.category; document.getElementById('txNote').value = tx.note || ''; document.getElementById('btnDeleteTx').classList.remove('d-none'); addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal"); }
-    function saveTransaction() { const id = document.getElementById('txId').value; const type = document.querySelector('input[name="txType"]:checked').value; const amount = parseFloat(document.getElementById('txAmount').value); const category = document.getElementById('txCategory').value; const accId = parseInt(document.getElementById('txAccount').value) || 1; const note = document.getElementById('txNote').value.replace(/'/g, "''"); if (isNaN(amount) || amount <= 0) { alert("Сумма?"); return; } if (id) { window.Android.executeSql(DB_NAME, `UPDATE transactions SET type='${type}', amount=${amount}, category='${category}', note='${note}', account_id=${accId} WHERE id=${id}`); } else { window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('${type}', ${amount}, '${category}', '${note}', ${Date.now()}, 'finance', ${accId})`); } addModal.hide(); updateBalancesFast(); loadTransactions(true); }
-    function deleteTx() { const id = document.getElementById('txId').value; if (confirm("Удалить операцию?")) { window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`); addModal.hide(); updateBalancesFast(); loadTransactions(true); } }
+    
+    function saveTransaction() { 
+        const id = document.getElementById('txId').value; 
+        const type = document.querySelector('input[name="txType"]:checked').value; 
+        const amount = parseFloat(document.getElementById('txAmount').value); 
+        const category = document.getElementById('txCategory').value; 
+        const accId = parseInt(document.getElementById('txAccount').value) || 1; 
+        const note = document.getElementById('txNote').value.replace(/'/g, "''"); 
+        if (isNaN(amount) || amount <= 0) { alert("Сумма?"); return; } 
+        
+        if (id) { window.Android.executeSql(DB_NAME, `UPDATE transactions SET type='${type}', amount=${amount}, category='${category}', note='${note}', account_id=${accId} WHERE id=${id}`); } 
+        else { window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('${type}', ${amount}, '${category}', '${note}', ${Date.now()}, 'finance', ${accId})`); } 
+        
+        addModal.hide(); 
+        updateBalancesFast(); 
+        loadTransactions(true); 
+        // Обновляем статистику если мы находимся на экране графиков
+        if (!document.getElementById('statsScreen').classList.contains('d-none')) calculateStats();
+    }
+    
+    function deleteTx() { 
+        const id = document.getElementById('txId').value; 
+        if (confirm("Удалить операцию?")) { 
+            window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`); 
+            addModal.hide(); 
+            updateBalancesFast(); 
+            loadTransactions(true); 
+            if (!document.getElementById('statsScreen').classList.contains('d-none')) calculateStats();
+        } 
+    }
+
     function updateCategorySelect() { const type = document.querySelector('input[name="txType"]:checked').value; const select = document.getElementById('txCategory'); select.innerHTML = ''; allCategories.filter(c => c.type === type).forEach(c => select.innerHTML += `<option value="${c.name}">${c.name}</option>`); }
     function updateAccountSelect() { const select = document.getElementById('txAccount'); select.innerHTML = ''; allAccounts.forEach(a => select.innerHTML += `<option value="${a.id}">${a.name}</option>`); }
     function showAddAccountModal() { document.getElementById('newAccName').value = ''; accModal.show(); }
@@ -557,6 +601,7 @@
     function showCategoryModal() { document.getElementById('newCategoryName').value = ''; document.getElementById('categoryModalTitle').innerText = document.querySelector('input[name="txType"]:checked').value === 'expense' ? 'Новая категория расхода' : 'Новая категория дохода'; addModal.hide(); setTimeout(() => categoryModal.show(), 400); }
     function saveNewCategory() { const name = document.getElementById('newCategoryName').value.trim().replace(/'/g, "''"); if (!name) return; const type = document.querySelector('input[name="txType"]:checked').value; window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ('${name}', '${type}')`); categoryModal.hide(); allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC")); updateCategorySelect(); setTimeout(() => { addModal.show(); document.getElementById('txCategory').value = name; }, 400); }
     
+    // === ТЕСТЫ ===
     function generateTestTx() {
         if (!confirm("Добавить 10 000 случайных операций?")) return;
         const btn = document.getElementById('btnGenerate');
