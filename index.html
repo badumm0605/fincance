@@ -167,7 +167,7 @@
         try {
             const resCat = JSON.parse(window.Android.querySql(DB_NAME, "SELECT COUNT(*) as c FROM categories"));
             if (resCat[0].c === 0) {
-                const defCat = ["('Продукты', 'expense')", "('Транспорт', 'expense')", "('Бизнес (Запчасти)', 'expense')", "('Зарплата', 'income')", "('Услуги ремонта', 'income')"];
+                const defCat = ["('Продукты', 'expense')", "('Транспорт', 'expense')", "('Бизнес (Запчасти)', 'expense')", "('Корректировка Расход', 'expense')", "('Корректировка Доход', 'income')", "('Зарплата', 'income')", "('Услуги ремонта', 'income')"];
                 window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ${defCat.join(',')}`);
             }
         } catch (e) {}
