@@ -39,6 +39,16 @@
             position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px;
             border-radius: 30px; font-size: 24px; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
             z-index: 1040; display: flex; align-items: center; justify-content: center;
+            /* ДОБАВИТЬ ЭТУ СТРОКУ ДЛЯ ПЛАВНОСТИ: */
+            transition: 0.3s ease-in-out;
+        }
+        
+        /* ДОБАВИТЬ ЭТОТ НОВЫЙ КЛАСС: */
+        .fab-hidden {
+            opacity: 0; 
+            visibility: hidden; 
+            transform: scale(0.8);
+            pointer-events: none;
         }
 
         /* КНОПКА "НАВЕРХ" */
@@ -402,18 +412,21 @@
         container.insertAdjacentHTML('beforeend', html);
     }
 
-    // === УПРАВЛЕНИЕ СКРОЛЛОМ И КНОПКОЙ "НАВЕРХ" ===
+   // === УПРАВЛЕНИЕ СКРОЛЛОМ И КНОПКОЙ "НАВЕРХ" ===
     window.addEventListener('scroll', () => {
         const scrollTopBtn = document.getElementById('scrollTopBtn');
+        const mainFabBtn = document.querySelector('.fab'); // Находим нашу кнопку "Плюс"
         
-        // Логика появления кнопки "Наверх"
+        // Логика переключения видимости кнопок
         if (window.scrollY > 300) {
-            scrollTopBtn.classList.add('visible');
+            scrollTopBtn.classList.add('visible');      // Показываем стрелку вверх
+            if(mainFabBtn) mainFabBtn.classList.add('fab-hidden'); // Прячем плюс
         } else {
-            scrollTopBtn.classList.remove('visible');
+            scrollTopBtn.classList.remove('visible');   // Прячем стрелку вверх
+            if(mainFabBtn) mainFabBtn.classList.remove('fab-hidden'); // Показываем плюс
         }
 
-        // Логика бесконечного скролла
+        // Логика бесконечного скролла (оставьте как было)
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
             if (!document.getElementById('mainScreen').classList.contains('d-none')) {
                 loadTransactions(false);
