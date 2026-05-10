@@ -42,7 +42,7 @@
 
         /* Стили для CSS графиков аналитики */
         .stat-bar-container { width: 100%; background-color: #e9ecef; border-radius: 8px; height: 12px; overflow: hidden; margin-top: 6px; }
-        .stat-bar-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #dc3545 0%, #ff6b6b 100%); }
+        .stat-bar-fill { height: 100%; border-radius: 8px; }
         .stat-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
     </style>
 </head>
@@ -64,14 +64,14 @@
 
         <div class="accounts-scroll px-1" id="accountsList"></div>
 
-        <h6 class="text-muted fw-bold mb-3 mt-4 px-1">История операций</h6>
-        <div id="transactionsList" class="d-flex flex-column gap-2"></div>
-
-        <div class="alert alert-warning mt-5 shadow-sm border-0">
+        <div class="alert alert-warning mt-3 mb-4 shadow-sm border-0">
             <h6 class="fw-bold"><i class="fa-solid fa-bug me-2"></i>Панель разработчика</h6>
             <button class="btn btn-dark btn-sm w-100 mb-2 fw-bold" onclick="generateTestTx()" id="btnGenerate">Сгенерировать 10 000 записей</button>
             <button class="btn btn-outline-danger btn-sm w-100 fw-bold" onclick="clearFinanceDb()">Очистить базу (только Финансы)</button>
         </div>
+
+        <h6 class="text-muted fw-bold mb-3 px-1">История операций</h6>
+        <div id="transactionsList" class="d-flex flex-column gap-2"></div>
     </div>
 
     <button class="btn btn-primary fab" onclick="showAddModal()">
@@ -90,6 +90,9 @@
 
         <div class="mb-4">
             <select id="statsPeriod" class="form-select border-0 shadow-sm fw-bold text-primary" onchange="calculateStats()">
+                <option value="today">Сегодня</option>
+                <option value="24h">За последние сутки</option>
+                <option value="week">Текущая неделя</option>
                 <option value="month" selected>Этот месяц</option>
                 <option value="lastMonth">Прошлый месяц</option>
                 <option value="year">Этот год</option>
@@ -124,9 +127,11 @@
             </div>
         </div>
 
-        <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-chart-bar me-2"></i>Расходы по категориям</h6>
-        <div id="categoryStatsList" class="d-flex flex-column">
-            </div>
+        <h6 class="text-muted fw-bold mb-3 px-1 mt-4"><i class="fa-solid fa-arrow-down text-success me-2"></i>Доходы по категориям</h6>
+        <div id="categoryStatsIncomeList" class="d-flex flex-column mb-4"></div>
+
+        <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-arrow-up text-danger me-2"></i>Расходы по категориям</h6>
+        <div id="categoryStatsExpenseList" class="d-flex flex-column"></div>
     </div>
 </div>
 
@@ -269,8 +274,8 @@
         
         updateCategorySelect();
         updateAccountSelect();
-        updateBalancesFast(); // Мгновенный пересчет счетов через SQL
-        loadTransactions(true); // Загрузка первой пачки транзакций
+        updateBalancesFast(); 
+        loadTransactions(true); 
     }
 
     function seedDataIfEmpty() {
@@ -286,9 +291,8 @@
         } catch (e) {}
     }
 
-    // === БЫСТРЫЙ ПЕРЕСЧЕТ БАЛАНСОВ (Агрегация SQL) ===
+    // === БЫСТРЫЙ ПЕРЕСЧЕТ БАЛАНСОВ ===
     function updateBalancesFast() {
-        // Мы просим саму БД посчитать суммы, это происходит за миллисекунды даже на 1 млн записей
         const sql = "SELECT account_id, type, SUM(amount) as total FROM transactions GROUP BY account_id, type";
         const rows = JSON.parse(window.Android.querySql(DB_NAME, sql));
         
@@ -316,12 +320,12 @@
                         <i class="fa-solid ${icons[acc.type] || 'fa-wallet'} fs-5 opacity-75"></i>
                     </div>
                     <small class="opacity-75 text-truncate d-block" style="max-width: 100px;">${acc.name}</small>
-                    <h5 class="fw-bold mb-0 mt-1">${balances[acc.id].toLocaleString('ru-RU')} ₽</h5>
+                    <h5 class="fw-bold mb-0 mt-1">${Number(balances[acc.id]).toLocaleString('ru-RU')} ₽</h5>
                 </div>
             `;
         });
         accContainer.innerHTML += `<div class="card account-card shadow-sm acc-add" onclick="showAddAccountModal()"><i class="fa-solid fa-plus"></i></div>`;
-        document.getElementById('totalBalanceAll').innerText = totalAll.toLocaleString('ru-RU') + ' ₽';
+        document.getElementById('totalBalanceAll').innerText = Number(totalAll).toLocaleString('ru-RU') + ' ₽';
     }
 
     // === ПАГИНАЦИЯ ТРАНЗАКЦИЙ ===
@@ -358,7 +362,6 @@
             const isInc = tx.type === 'income';
             const accName = (allAccounts.find(a => a.id === (tx.account_id || 1)) || {}).name || 'Счет удален';
             const dateStr = new Date(tx.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-            // Сохраняем объект целиком в кнопку для простоты редактирования
             const safeTx = JSON.stringify(tx).replace(/'/g, "&apos;").replace(/"/g, '&quot;');
 
             html += `
@@ -372,7 +375,7 @@
                             <small class="text-muted text-truncate d-block">${accName} • ${dateStr}</small>
                         </div>
                         <div class="text-end flex-shrink-0 ms-2">
-                            <h6 class="mb-0 fw-bold ${isInc ? 'text-success' : ''}">${isInc ? '+' : '-'}${parseFloat(tx.amount).toLocaleString('ru-RU')} ₽</h6>
+                            <h6 class="mb-0 fw-bold ${isInc ? 'text-success' : ''}">${isInc ? '+' : '-'}${Number(tx.amount).toLocaleString('ru-RU')} ₽</h6>
                             ${tx.source_app === 'crm' ? '<span class="badge bg-info" style="font-size: 0.6rem;">CRM</span>' : ''}
                         </div>
                     </div>
@@ -405,7 +408,14 @@
         const now = new Date();
         let startTime = 0, endTime = 4102444800000;
 
-        if (period === 'month') {
+        if (period === 'today') {
+            startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        } else if (period === '24h') {
+            startTime = now.getTime() - (24 * 60 * 60 * 1000);
+        } else if (period === 'week') {
+            const day = now.getDay() || 7;
+            startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1).getTime();
+        } else if (period === 'month') {
             startTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
         } else if (period === 'lastMonth') {
             startTime = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
@@ -414,48 +424,93 @@
             startTime = new Date(now.getFullYear(), 0, 1).getTime();
         }
 
-        // 1. Считаем Общие доходы и расходы
-        const sqlTotal = `SELECT type, SUM(amount) as total FROM transactions WHERE timestamp >= ${startTime} AND timestamp < ${endTime} GROUP BY type`;
-        let income = 0, expense = 0;
+        const sql = `SELECT type, amount, category, source_app FROM transactions WHERE timestamp >= ${startTime} AND timestamp < ${endTime}`;
         
-        try {
-            const res = JSON.parse(window.Android.querySql(DB_NAME, sqlTotal));
-            res.forEach(r => { if(r.type === 'income') income = r.total; else expense = r.total; });
-        } catch(e) {}
-
-        document.getElementById('statIncome').innerText = income.toLocaleString('ru-RU') + ' ₽';
-        document.getElementById('statExpense').innerText = expense.toLocaleString('ru-RU') + ' ₽';
-        const delta = income - expense;
-        const elDelta = document.getElementById('statDelta');
-        elDelta.innerText = (delta > 0 ? '+' : '') + delta.toLocaleString('ru-RU') + ' ₽';
-        elDelta.className = delta >= 0 ? "fs-4 fw-bold text-success" : "fs-4 fw-bold text-danger";
-
-        // 2. Считаем траты по Категориям (группировка SQL)
-        const sqlCat = `SELECT category, SUM(amount) as total FROM transactions WHERE type='expense' AND timestamp >= ${startTime} AND timestamp < ${endTime} GROUP BY category ORDER BY total DESC`;
-        const listCat = document.getElementById('categoryStatsList');
-        listCat.innerHTML = '';
+        let totalIncome = 0;
+        let totalExpense = 0;
+        let incomeCats = {};
+        let expenseCats = {};
+        let crmGross = 0;
+        let crmParts = 0;
 
         try {
-            const cats = JSON.parse(window.Android.querySql(DB_NAME, sqlCat));
-            if(cats.length === 0) { listCat.innerHTML = '<p class="text-muted text-center">Нет расходов в этом периоде</p>'; return; }
+            const rows = JSON.parse(window.Android.querySql(DB_NAME, sql));
             
-            const maxVal = cats[0].total; // Берем максимум для 100% бара
-            
-            cats.forEach(c => {
-                const percent = Math.max(2, Math.round((c.total / maxVal) * 100)); // минимум 2% чтобы бар был виден
-                listCat.innerHTML += `
-                    <div class="stat-item">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="fw-bold fs-6">${c.category}</span>
-                            <span class="fw-bold">${parseFloat(c.total).toLocaleString('ru-RU')} ₽</span>
-                        </div>
-                        <div class="stat-bar-container">
-                            <div class="stat-bar-fill" style="width: ${percent}%;"></div>
-                        </div>
-                    </div>
-                `;
+            rows.forEach(r => {
+                const amt = parseFloat(r.amount);
+                if (r.source_app === 'crm') {
+                    // Разделяем данные из CRM для подсчета чистой прибыли
+                    if (r.type === 'income') crmGross += amt;
+                    if (r.type === 'expense' && r.category === 'Бизнес (Запчасти)') crmParts += amt;
+                } else {
+                    // Обычные ручные транзакции
+                    if (r.type === 'income') {
+                        totalIncome += amt;
+                        incomeCats[r.category] = (incomeCats[r.category] || 0) + amt;
+                    } else {
+                        totalExpense += amt;
+                        expenseCats[r.category] = (expenseCats[r.category] || 0) + amt;
+                    }
+                }
             });
-        } catch(e) {}
+
+            // Вычисляем чистую прибыль от CRM и добавляем ее как один чистый "Доход"
+            const crmNet = crmGross - crmParts;
+            if (crmNet > 0) {
+                totalIncome += crmNet;
+                incomeCats['Услуги ремонта (Чистыми)'] = (incomeCats['Услуги ремонта (Чистыми)'] || 0) + crmNet;
+            } else if (crmNet < 0) {
+                totalExpense += Math.abs(crmNet);
+                expenseCats['Убыток по ремонтам'] = (expenseCats['Убыток по ремонтам'] || 0) + Math.abs(crmNet);
+            }
+
+            // Вывод главных цифр (с нормальным форматированием)
+            document.getElementById('statIncome').innerText = Number(totalIncome).toLocaleString('ru-RU') + ' ₽';
+            document.getElementById('statExpense').innerText = Number(totalExpense).toLocaleString('ru-RU') + ' ₽';
+            const delta = totalIncome - totalExpense;
+            const elDelta = document.getElementById('statDelta');
+            elDelta.innerText = (delta > 0 ? '+' : '') + Number(delta).toLocaleString('ru-RU') + ' ₽';
+            elDelta.className = delta >= 0 ? "fs-4 fw-bold text-success" : "fs-4 fw-bold text-danger";
+
+            // Отрисовка графиков Доходов
+            renderStatCharts('categoryStatsIncomeList', incomeCats, 'success');
+            // Отрисовка графиков Расходов
+            renderStatCharts('categoryStatsExpenseList', expenseCats, 'danger');
+
+        } catch(e) { console.error("Ошибка подсчета аналитики: ", e); }
+    }
+
+    function renderStatCharts(containerId, catsObj, colorMode) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        
+        const catArray = Object.keys(catsObj).map(k => ({ category: k, total: catsObj[k] }));
+        catArray.sort((a, b) => b.total - a.total);
+
+        if(catArray.length === 0) { 
+            container.innerHTML = '<p class="text-muted text-center small mb-0">Нет данных в этом периоде</p>'; 
+            return; 
+        }
+        
+        const maxVal = catArray[0].total; 
+        const gradient = colorMode === 'success' 
+            ? 'linear-gradient(90deg, #198754 0%, #20c997 100%)' 
+            : 'linear-gradient(90deg, #dc3545 0%, #ff6b6b 100%)';
+        
+        catArray.forEach(c => {
+            const percent = Math.max(2, Math.round((c.total / maxVal) * 100)); 
+            container.innerHTML += `
+                <div class="stat-item">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-bold fs-6">${c.category}</span>
+                        <span class="fw-bold">${Number(c.total).toLocaleString('ru-RU')} ₽</span>
+                    </div>
+                    <div class="stat-bar-container">
+                        <div class="stat-bar-fill" style="width: ${percent}%; background: ${gradient};"></div>
+                    </div>
+                </div>
+            `;
+        });
     }
 
     // === ФОРМЫ (Создание и Редактирование) ===
@@ -473,7 +528,7 @@
     function openEditTxModal(txJson) {
         const tx = JSON.parse(txJson);
         if (tx.source_app === 'crm') {
-            alert("Эта операция из CRM. Редактируйте сам заказ.");
+            alert("Эта операция из CRM. Редактируйте сам заказ в приложении CRM.");
             return;
         }
 
@@ -586,7 +641,6 @@
                 const cat = (catArr.length > 0 ? catArr[Math.floor(Math.random() * catArr.length)].name : 'Тест');
                 const amt = Math.floor(Math.random() * (isInc ? 50000 : 5000)) + 100;
                 const accId = allAccounts.length > 0 ? allAccounts[Math.floor(Math.random() * allAccounts.length)].id : 1;
-                // Раскидываем даты на последние 365 дней
                 const ts = Date.now() - Math.floor(Math.random() * 365 * 24 * 60 * 60 * 1000); 
                 values.push(`('${type}', ${amt}, '${cat}', 'Тест', ${ts}, 'finance', ${accId})`);
             }
