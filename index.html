@@ -9,7 +9,7 @@
     <link href="file:///android_asset/css/morris.css" rel="stylesheet">
     
     <style>
-        body { background-color: #f5f7fa; padding-bottom: 80px; }
+        body { background-color: #f0f2f5; padding-bottom: 80px; }
         
         .accounts-scroll {
             display: flex; overflow-x: auto; gap: 12px; padding-bottom: 10px;
@@ -42,11 +42,9 @@
         
         #addCategoryModal { z-index: 1060; }
 
-        /* ИСПРАВЛЕНИЕ БАГА MORRIS (НАЕЗЖАНИЕ ПОДСКАЗКИ) */
+        /* ИСПРАВЛЕНИЕ БАГА MORRIS (НАЕЗЖАНИЕ ПОДСКАЗКИ И ШРИФТЫ) */
         .morris-hover { position: absolute; z-index: 1000 !important; }
-        .chart-container-card { overflow: visible !important; } /* Чтобы подсказка не обрезалась краями карточки */
-        
-        /* Фикс для шрифта внутри Donut Chart */
+        .chart-container-card { overflow: visible !important; } 
         .morris-default-style { font-family: inherit; }
     </style>
 </head>
@@ -155,21 +153,23 @@
             </div>
         </div>
 
-        <div id="incomeDonutContainer" class="card border-0 shadow-sm mb-4 chart-container-card d-none">
-            <div class="card-body p-2 pt-3">
-                <h6 class="text-muted fw-bold mb-2 px-2 text-center"><i class="fa-solid fa-arrow-down text-success me-2"></i>Доходы</h6>
-                <div id="incomeDonutChart" style="height: 200px;"></div>
+        <div id="incomeStatsContainer" class="d-none mb-4">
+            <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-arrow-down text-success me-2"></i>Структура доходов</h6>
+            <div class="card border-0 shadow-sm chart-container-card mb-3">
+                <div class="card-body p-2"><div id="incomeDonutChart" style="height: 220px;"></div></div>
             </div>
+            <div id="categoryStatsIncomeList" class="d-flex flex-column gap-2"></div>
         </div>
 
-        <div id="expenseDonutContainer" class="card border-0 shadow-sm mb-4 chart-container-card d-none">
-            <div class="card-body p-2 pt-3">
-                <h6 class="text-muted fw-bold mb-2 px-2 text-center"><i class="fa-solid fa-arrow-up text-danger me-2"></i>Расходы</h6>
-                <div id="expenseDonutChart" style="height: 200px;"></div>
+        <div id="expenseStatsContainer" class="d-none mb-4">
+            <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-arrow-up text-danger me-2"></i>Структура расходов</h6>
+            <div class="card border-0 shadow-sm chart-container-card mb-3">
+                <div class="card-body p-2"><div id="expenseDonutChart" style="height: 220px;"></div></div>
             </div>
+            <div id="categoryStatsExpenseList" class="d-flex flex-column gap-2"></div>
         </div>
 
-        <h6 class="text-muted fw-bold mb-3 px-1 mt-4">Операции за выбранный период</h6>
+        <h6 class="text-muted fw-bold mb-3 px-1 mt-5 border-top pt-4">Операции за выбранный период</h6>
         <div id="statsTransactionsList" class="d-flex flex-column gap-2 mb-5"></div>
 
     </div>
@@ -388,15 +388,15 @@
         const period = document.getElementById('statsPeriod').value;
         const now = new Date();
         let startTime = 0, endTime = 4102444800000;
-        let showChart = true;
+        let showLineChart = true;
         let chartType = 'daily'; 
 
         if (period === 'today') {
             startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-            showChart = false;
+            showLineChart = false;
         } else if (period === '24h') {
             startTime = now.getTime() - (24 * 60 * 60 * 1000);
-            showChart = false;
+            showLineChart = false;
         } else if (period === 'week') {
             const day = now.getDay() || 7;
             startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1).getTime();
@@ -458,8 +458,8 @@
                     }
                 }
 
-                // Сохраняем первые 100 для отображения в списке внизу
-                if (index < 100) txForList.push(r);
+                // Сохраняем все транзакции для нижнего списка
+                txForList.push(r);
             });
 
             // Вычисляем чистую прибыль от CRM
@@ -472,7 +472,6 @@
                 expenseCats['Убыток по ремонтам'] = (expenseCats['Убыток по ремонтам'] || 0) + Math.abs(crmNet);
             }
 
-            // Вывод главных цифр
             document.getElementById('statIncome').innerText = Number(totalIncome).toLocaleString('ru-RU') + ' ₽';
             document.getElementById('statExpense').innerText = Number(totalExpense).toLocaleString('ru-RU') + ' ₽';
             const delta = totalIncome - totalExpense;
@@ -482,7 +481,7 @@
 
             // === ОТРИСОВКА MORRIS LINE CHART ===
             const chartContainerNode = document.getElementById('financeChartContainer');
-            if (!showChart || Object.keys(chartDataMap).length === 0) {
+            if (!showLineChart || Object.keys(chartDataMap).length === 0) {
                 chartContainerNode.classList.add('d-none');
             } else {
                 chartContainerNode.classList.remove('d-none');
@@ -512,11 +511,10 @@
                         lineColors: ['#198754', '#dc3545'],
                         hideHover: 'auto',
                         resize: true,
-                        parseTime: false, // Отключаем парсинг, чтобы даты по X отображались четко
+                        parseTime: false, 
                         hoverCallback: function (index, options, content, row) {
-                            // Форматируем подсказку на графике
-                            return `<div class="p-2 fw-bold bg-white border rounded">
-                                        <div class="mb-1 text-dark">${row.period}</div>
+                            return `<div class="p-2 fw-bold bg-white shadow-sm border rounded">
+                                        <div class="mb-1 text-dark border-bottom pb-1">${row.period}</div>
                                         <div style="color: #198754">Доход: ${Number(row.income).toLocaleString('ru-RU')} ₽</div>
                                         <div style="color: #dc3545">Расход: ${Number(row.expense).toLocaleString('ru-RU')} ₽</div>
                                     </div>`;
@@ -525,9 +523,9 @@
                 }
             }
 
-            // === ОТРИСОВКА MORRIS DONUT CHARTS ===
-            renderDonutChart('incomeDonut', incomeCats, ['#198754', '#20c997', '#146c43', '#28a745', '#218838']);
-            renderDonutChart('expenseDonut', expenseCats, ['#dc3545', '#ff6b6b', '#c82333', '#e4606d', '#bd2130']);
+            // === ОТРИСОВКА MORRIS DONUT И ЛЕГЕНДЫ ===
+            renderDonutWithLegend('incomeDonutChart', 'categoryStatsIncomeList', 'incomeStatsContainer', incomeCats);
+            renderDonutWithLegend('expenseDonutChart', 'categoryStatsExpenseList', 'expenseStatsContainer', expenseCats);
 
             // Отрисовка списка транзакций за период
             document.getElementById('statsTransactionsList').innerHTML = '';
@@ -536,33 +534,65 @@
         } catch(e) { console.error("Ошибка аналитики: ", e); }
     }
 
-    function renderDonutChart(prefix, catsObj, colorArray) {
-        const containerNode = document.getElementById(prefix + 'Container');
-        const chartNode = document.getElementById(prefix + 'Chart');
-        chartNode.innerHTML = ''; // Очищаем
+    // Универсальная функция для отрисовки Бублика + Цветной легенды
+    function renderDonutWithLegend(donutId, legendId, containerId, catsObj) {
+        const containerNode = document.getElementById(containerId);
+        const donutNode = document.getElementById(donutId);
+        const legendNode = document.getElementById(legendId);
 
-        if (Object.keys(catsObj).length === 0) {
+        donutNode.innerHTML = '';
+        legendNode.innerHTML = '';
+
+        const keys = Object.keys(catsObj).sort((a, b) => catsObj[b] - catsObj[a]);
+
+        if (keys.length === 0) {
             containerNode.classList.add('d-none');
             return;
         }
         containerNode.classList.remove('d-none');
 
-        let donutData = Object.keys(catsObj).map(k => ({ label: k, value: catsObj[k] }));
-        
+        // Яркая, контрастная палитра для категорий
+        const palette = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#8AC926', '#1982C4', '#F15BB5', '#00BBF9', '#FEE440', '#00F5D4'];
+
+        let donutData = [];
+        let colors = [];
+        let legendHtml = '';
+
+        keys.forEach((cat, index) => {
+            const color = palette[index % palette.length];
+            const val = catsObj[cat];
+
+            donutData.push({ label: cat, value: val });
+            colors.push(color);
+
+            // Красивая цветная легенда под графиком
+            legendHtml += `
+                <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded-3 shadow-sm border-0">
+                    <div class="d-flex align-items-center overflow-hidden pe-2">
+                        <div style="width: 14px; height: 14px; background-color: ${color}; border-radius: 50%; flex-shrink: 0;" class="me-3 shadow-sm"></div>
+                        <span class="fw-bold fs-6 text-truncate">${cat}</span>
+                    </div>
+                    <span class="fw-bold fs-6 flex-shrink-0">${Number(val).toLocaleString('ru-RU')} ₽</span>
+                </div>
+            `;
+        });
+
         if (window.Morris) {
             new Morris.Donut({
-                element: chartNode.id,
+                element: donutId,
                 data: donutData,
-                colors: colorArray,
+                colors: colors,
                 resize: true,
                 formatter: function (y) { return Number(y).toLocaleString('ru-RU') + ' ₽'; }
             });
         }
+
+        legendNode.innerHTML = legendHtml;
     }
 
-    // === ФОРМЫ (Создание и Редактирование) ===
+    // === ФОРМЫ ===
     function showAddModal() { document.getElementById('txId').value = ''; document.getElementById('txModalTitle').innerText = 'Новая операция'; document.getElementById('txAmount').value = ''; document.getElementById('txNote').value = ''; document.getElementById('btnDeleteTx').classList.add('d-none'); updateCategorySelect(); addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal"); }
-    function openEditTxModal(txJson) { const tx = JSON.parse(txJson); if (tx.source_app === 'crm') { alert("Операция из CRM. Редактируйте сам заказ."); return; } document.getElementById('txId').value = tx.id; document.getElementById('txModalTitle').innerText = 'Редактировать'; if (tx.type === 'income') document.getElementById('typeIncome').checked = true; else document.getElementById('typeExpense').checked = true; updateCategorySelect(); document.getElementById('txAmount').value = tx.amount; document.getElementById('txAccount').value = tx.account_id || 1; document.getElementById('txCategory').value = tx.category; document.getElementById('txNote').value = tx.note || ''; document.getElementById('btnDeleteTx').classList.remove('d-none'); addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal"); }
+    function openEditTxModal(txJson) { const tx = JSON.parse(txJson); if (tx.source_app === 'crm') { alert("Операция из CRM. Редактируйте сам заказ в приложении CRM."); return; } document.getElementById('txId').value = tx.id; document.getElementById('txModalTitle').innerText = 'Редактировать'; if (tx.type === 'income') document.getElementById('typeIncome').checked = true; else document.getElementById('typeExpense').checked = true; updateCategorySelect(); document.getElementById('txAmount').value = tx.amount; document.getElementById('txAccount').value = tx.account_id || 1; document.getElementById('txCategory').value = tx.category; document.getElementById('txNote').value = tx.note || ''; document.getElementById('btnDeleteTx').classList.remove('d-none'); addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal"); }
     
     function saveTransaction() { 
         const id = document.getElementById('txId').value; 
@@ -579,7 +609,6 @@
         addModal.hide(); 
         updateBalancesFast(); 
         loadTransactions(true); 
-        // Обновляем статистику если мы находимся на экране графиков
         if (!document.getElementById('statsScreen').classList.contains('d-none')) calculateStats();
     }
     
@@ -625,7 +654,7 @@
             window.Android.executeSql(DB_NAME, sql + values.join(", "));
             totalInserted += 500;
             if (totalInserted < 10000) { btn.innerText = `Добавлено: ${totalInserted} / 10000`; setTimeout(insertBatch, 20); } 
-            else { btn.disabled = false; btn.innerText = "Сгенерировать 10 000 записей"; updateBalancesFast(); loadTransactions(true); alert("Успешно добавлено!"); }
+            else { btn.disabled = false; btn.innerText = "Сгенерировать 10 000 записей"; updateBalancesFast(); loadTransactions(true); if (!document.getElementById('statsScreen').classList.contains('d-none')) calculateStats(); alert("Успешно добавлено!"); }
         }
         insertBatch();
     }
@@ -633,7 +662,7 @@
     function clearFinanceDb() {
         if (!confirm("ВНИМАНИЕ! Удалить все операции (кроме CRM)?")) return;
         window.Android.executeSql(DB_NAME, "DELETE FROM transactions WHERE source_app='finance'");
-        updateBalancesFast(); loadTransactions(true); alert("Очищено!");
+        updateBalancesFast(); loadTransactions(true); if (!document.getElementById('statsScreen').classList.contains('d-none')) calculateStats(); alert("Очищено!");
     }
 
     window.addEventListener('DOMContentLoaded', initDb);
