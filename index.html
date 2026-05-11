@@ -56,6 +56,17 @@
             background: rgba(240, 242, 245, 0.85); backdrop-filter: blur(2px);
             z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
+
+        /* КАЛЕНДАРЬ */
+        .cal-day { width: 14.28%; padding: 10px 0; cursor: pointer; border-radius: 8px; margin-bottom: 2px; transition: 0.2s; font-weight: bold; }
+        .cal-day:hover:not(.disabled) { background-color: #e9ecef; }
+        .cal-day.selected { background-color: #0d6efd; color: white; border-radius: 8px; }
+        .cal-day.in-range { background-color: #cfe2ff; border-radius: 0; color: #0a58ca; }
+        .cal-day.disabled { opacity: 0.3; pointer-events: none; font-weight: normal; }
+
+        .morris-hover { position: absolute; z-index: 1000 !important; }
+        .chart-container-card { overflow: visible !important; } 
+        .morris-default-style { font-family: inherit; }
     </style>
 </head>
 <body>
@@ -102,13 +113,18 @@
                 <option value="today">Сегодня</option><option value="24h">За последние 24 часа</option>
                 <option value="week">Текущая неделя</option><option value="month" selected>Этот месяц</option>
                 <option value="lastMonth">Прошлый месяц</option><option value="custom">Выбрать месяц...</option>
-                <option value="year">Этот год</option><option value="all">За всё время</option>
+                <option value="year">Этот год</option><option value="range">Свой период (с... по...)</option><option value="all">За всё время</option>
             </select>
             <div id="customMonthSelector" class="d-none animate__animated animate__fadeIn">
                 <div class="row g-2">
                     <div class="col-7"><select id="statsMonth" class="form-select border-0 shadow-sm fw-bold" onchange="triggerCalculateStats()"><option value="0">Январь</option><option value="1">Февраль</option><option value="2">Март</option><option value="3">Апрель</option><option value="4">Май</option><option value="5">Июнь</option><option value="6">Июль</option><option value="7">Август</option><option value="8">Сентябрь</option><option value="9">Октябрь</option><option value="10">Ноябрь</option><option value="11">Декабрь</option></select></div>
                     <div class="col-5"><select id="statsYear" class="form-select border-0 shadow-sm fw-bold" onchange="triggerCalculateStats()"></select></div>
                 </div>
+            </div>
+            <div id="rangeSelectedInfo" class="d-none animate__animated animate__fadeIn mt-2">
+                <button class="btn btn-outline-primary w-100 fw-bold shadow-sm" onclick="openDateRangeModal()">
+                    <i class="fa-solid fa-calendar-days me-2"></i>Выбран: <span id="rangeBtnText">...</span> (Изменить)
+                </button>
             </div>
         </div>
         <div class="row g-2 mb-4">
@@ -260,6 +276,35 @@
 
 <div class="modal fade" id="addCategoryModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow"><div class="modal-header border-0 pb-0"><h6 class="modal-title fw-bold" id="categoryModalTitle">Новая категория</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="text" id="newCategoryName" class="form-control mb-3" placeholder="Название (например, Кофе)"><button class="btn btn-primary w-100 fw-bold" onclick="saveNewCategory()">Добавить</button></div></div></div></div>
 
+<div class="modal fade" id="dateRangeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold">Выберите период</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="cancelDateRange()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                    <button class="btn btn-light btn-sm shadow-sm rounded-circle" onclick="changeCalMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span id="calMonthYear" class="fw-bold text-capitalize"></span>
+                    <button class="btn btn-light btn-sm shadow-sm rounded-circle" onclick="changeCalMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="d-flex text-muted small fw-bold mb-2 text-center">
+                    <div style="width: 14.28%">Пн</div><div style="width: 14.28%">Вт</div><div style="width: 14.28%">Ср</div>
+                    <div style="width: 14.28%">Чт</div><div style="width: 14.28%">Пт</div><div style="width: 14.28%" class="text-danger">Сб</div>
+                    <div style="width: 14.28%" class="text-danger">Вс</div>
+                </div>
+                <div id="calDays" class="d-flex flex-wrap text-center"></div>
+                
+                <div class="mt-3 text-center small bg-light p-2 rounded-3 text-primary fw-bold" id="calSelectedText">
+                    Выберите начальную дату
+                </div>
+                <button class="btn btn-primary w-100 fw-bold mt-3 shadow-sm" onclick="applyDateRange()" id="btnApplyRange" disabled>Применить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="loadingOverlay" class="loading-overlay d-none"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div><h6 class="mt-3 fw-bold text-dark opacity-75">Считаем статистику...</h6></div>
 <button id="scrollTopBtn" class="scroll-top-btn" onclick="scrollToTop()"><i class="fa-solid fa-arrow-up"></i></button>
 
@@ -356,7 +401,7 @@
         
         let balances = {};
         allAccounts.forEach(acc => balances[acc.id] = 0);
-        let totalFree = 0; // Считаем только свободные средства
+        let totalFree = 0;
 
         rows.forEach(row => {
             const accId = row.account_id || 1;
@@ -372,10 +417,7 @@
         const icons = { 'cash': 'fa-wallet', 'card': 'fa-credit-card', 'credit': 'fa-building-columns' };
 
         allAccounts.forEach(acc => {
-            // Если счет не целевой (is_target === 0), то суммируем его в общий баланс
-            if (!acc.is_target) {
-                totalFree += balances[acc.id];
-            }
+            if (!acc.is_target) { totalFree += balances[acc.id]; }
 
             const targetBadge = acc.is_target ? '<span class="badge bg-light text-dark position-absolute top-0 end-0 m-2" style="font-size: 0.6rem; opacity: 0.8;"><i class="fa-solid fa-bullseye text-danger me-1"></i>Целевой</span>' : '';
 
@@ -711,16 +753,23 @@
     function togglePeriodSelector() {
         const period = document.getElementById('statsPeriod').value;
         const customBox = document.getElementById('customMonthSelector');
+        const rangeInfo = document.getElementById('rangeSelectedInfo');
+        
+        customBox.classList.add('d-none');
+        if (rangeInfo) rangeInfo.classList.add('d-none');
         
         if (period === 'custom') {
             customBox.classList.remove('d-none');
             triggerCalculateStats();
+        } else if (period === 'range') {
+            if (rangeInfo) rangeInfo.classList.remove('d-none');
+            openDateRangeModal();
         } else {
-            customBox.classList.add('d-none');
             triggerCalculateStats();
         }
     }
-// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ КАЛЕНДАРЯ ===
+
+    // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ КАЛЕНДАРЯ ===
     let rangeModal = null; let calCurrentDate = new Date(); let rangeStart = null; let rangeEnd = null; let dbMinTs = null; let dbMaxTs = null; let finalRangeStart = null; let finalRangeEnd = null;
 
     function getStatsDateRange() {
@@ -797,6 +846,7 @@
     function cancelDateRange() { 
         if (!finalRangeStart || !finalRangeEnd) { document.getElementById('statsPeriod').value = 'month'; togglePeriodSelector(); } 
     }
+
     function triggerCalculateStats() {
         document.getElementById('loadingOverlay').classList.remove('d-none');
         setTimeout(() => {
@@ -806,9 +856,8 @@
     }
 
     function calculateStats() {
-        const range = getStatsDateRange(); // Используем наш хелпер дат!
+        const range = getStatsDateRange();
 
-        // Исключаем Переводы и Корректировки из чистой аналитики
         const sql = `SELECT * FROM transactions WHERE timestamp >= ${range.startTime} AND timestamp < ${range.endTime} AND category NOT IN ('Перевод', 'Корректировка') ORDER BY timestamp ASC`;
         
         let totalIncome = 0; let totalExpense = 0;
@@ -843,8 +892,8 @@
             elDelta.innerText = (delta > 0 ? '+' : '') + Number(delta).toLocaleString('ru-RU') + ' ₽';
             elDelta.className = delta >= 0 ? "fs-4 fw-bold text-success" : "fs-4 fw-bold text-danger";
 
-            renderDonutChart('incomeDonut', incomeCats, ['#198754', '#20c997', '#146c43', '#28a745', '#218838']);
-            renderDonutChart('expenseDonut', expenseCats, ['#dc3545', '#ff6b6b', '#c82333', '#e4606d', '#bd2130']);
+            renderDonutChart('income', incomeCats, ['#198754', '#20c997', '#146c43', '#28a745', '#218838']);
+            renderDonutChart('expense', expenseCats, ['#dc3545', '#ff6b6b', '#c82333', '#e4606d', '#bd2130']);
 
             const chartContainerNode = document.getElementById('financeChartContainer');
             if (!range.showLineChart || Object.keys(chartDataMap).length === 0) {
@@ -863,8 +912,6 @@
                 }
             }
             
-            // Вывод списка транзакций в аналитике (Ограничим до 100 для скорости)
-            // Важно: здесь мы берем ВСЕ транзакции, чтобы были видны переводы
             const sqlAll = `SELECT * FROM transactions WHERE timestamp >= ${range.startTime} AND timestamp < ${range.endTime} ORDER BY timestamp DESC LIMIT 100`;
             const rowsAll = JSON.parse(window.Android.querySql(DB_NAME, sqlAll));
             document.getElementById('statsTransactionsList').innerHTML = '';
@@ -875,7 +922,7 @@
 
     function renderDonutChart(prefix, catsObj, colorArray) {
         const containerNode = document.getElementById(prefix + 'StatsContainer');
-        const chartNode = document.getElementById(prefix + 'Chart');
+        const chartNode = document.getElementById(prefix + 'DonutChart');
         const legendNode = document.getElementById('categoryStats' + (prefix === 'income' ? 'Income' : 'Expense') + 'List');
         
         chartNode.innerHTML = ''; legendNode.innerHTML = '';
