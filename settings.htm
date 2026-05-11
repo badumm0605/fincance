@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Настройки системы</title>
+    <link href="file:///android_asset/css/bootstrap.min.css" rel="stylesheet">
+    <link href="file:///android_asset/fwa/css/all.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #f0f2f5; 
+            padding-bottom: 40px; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        .settings-header { 
+            background: linear-gradient(135deg, #1e1e2f 0%, #2a2a4a 100%); 
+            color: white; 
+            border-radius: 0 0 24px 24px; 
+            padding: 30px 20px 40px 20px;
+            margin-bottom: -20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .settings-card {
+            background: #ffffff;
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        /* Стилизация свитчей (переключателей) */
+        .form-switch .form-check-input {
+            width: 3em;
+            height: 1.5em;
+            margin-top: 0;
+            cursor: pointer;
+        }
+        .form-switch .form-check-input:checked {
+            background-color: #198754;
+            border-color: #198754;
+        }
+
+        .setting-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        
+        .bg-light-primary { background-color: #e7f1ff; color: #0d6efd; }
+        .bg-light-warning { background-color: #fff3cd; color: #ffc107; }
+        .bg-light-success { background-color: #d1e7dd; color: #198754; }
+        .bg-light-danger { background-color: #f8d7da; color: #dc3545; }
+        
+        .form-control-custom {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-weight: 500;
+        }
+        .form-control-custom:focus {
+            background-color: #fff;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
+        }
+
+        .clickable-card { cursor: pointer; transition: 0.2s; }
+        .clickable-card:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+    <div class="settings-header position-relative">
+        <button class="btn btn-link text-white position-absolute top-0 start-0 mt-3 ms-2 p-2" onclick="history.back()" style="text-decoration: none;">
+            <i class="fa-solid fa-arrow-left fs-5"></i>
+        </button>
+        <div class="text-center mt-3">
+            <h4 class="fw-bold mb-1">Настройки</h4>
+            <p class="mb-0 opacity-75 small">Система и синхронизация</p>
+        </div>
+    </div>
+
+    <div class="container position-relative" style="z-index: 10;">
+        <div id="statusAlert" class="alert alert-success d-none shadow-sm rounded-3 fw-bold small text-center mb-3 border-0 py-2"></div>
+
+        <h6 class="text-muted fw-bold ms-2 mb-2 mt-4 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Безопасность</h6>
+        <div class="settings-card">
+            <div class="setting-item d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box bg-light-primary me-3"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div>
+                        <span class="fw-bold d-block text-dark">Авторизация</span>
+                        <small class="text-muted" style="font-size: 0.75rem;">Запрашивать вход в систему</small>
+                    </div>
+                </div>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input shadow-sm" type="checkbox" id="authSwitch" data-key="is_authorized" onchange="toggle(this)">
+                </div>
+            </div>
+            
+            <div class="setting-item d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box bg-light-warning me-3"><i class="fa-solid fa-bug"></i></div>
+                    <div>
+                        <span class="fw-bold d-block text-dark">Режим тестирования</span>
+                        <small class="text-muted" style="font-size: 0.75rem;">Расширенные логи и дебаг</small>
+                    </div>
+                </div>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input shadow-sm" type="checkbox" id="testingSwitch" data-key="is_testing" onchange="toggle(this)">
+                </div>
+            </div>
+
+            <div class="setting-item d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box bg-light-success me-3"><i class="fa-solid fa-toggle-on"></i></div>
+                    <div>
+                        <span class="fw-bold d-block text-dark">Универсальный свитч</span>
+                        <small class="text-muted" style="font-size: 0.75rem;">Пользовательский триггер</small>
+                    </div>
+                </div>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input shadow-sm" type="checkbox" id="universalSwitch" data-key="is_universal" onchange="toggle(this)">
+                </div>
+            </div>
+        </div>
+
+        <h6 class="text-muted fw-bold ms-2 mb-2 mt-4 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Профиль</h6>
+        <div class="settings-card p-3">
+            <label class="form-label text-muted fw-bold small ms-1">Имя пользователя</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-0 text-muted" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-user"></i></span>
+                <input type="text" id="userName" data-key="user_name" class="form-control form-control-custom border-start-0" oninput="saveText(this)" placeholder="Введите имя..." style="border-radius: 0 12px 12px 0;">
+            </div>
+        </div>
+
+        <h6 class="text-muted fw-bold ms-2 mb-2 mt-4 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Яндекс.Диск (WebDAV)</h6>
+        <div class="settings-card p-3">
+            <p class="text-muted small mb-3">Настройте синхронизацию для автоматического бекапа модулей CRM и Финансов.</p>
+            
+            <div class="mb-3">
+                <label class="form-label text-muted fw-bold small ms-1">Логин Яндекса</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted" style="border-radius: 12px 0 0 12px;"><i class="fa-brands fa-yandex"></i></span>
+                    <input type="text" id="webdavLogin" data-key="webdav_login" class="form-control form-control-custom border-start-0" oninput="saveText(this)" placeholder="mail@yandex.ru" style="border-radius: 0 12px 12px 0;">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-muted fw-bold small ms-1">Пароль приложения (Не от почты!)</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-key"></i></span>
+                    <input type="password" id="webdavPass" data-key="webdav_pass" class="form-control form-control-custom border-start-0" oninput="saveText(this)" placeholder="Пароль WebDAV" style="border-radius: 0 12px 12px 0;">
+                </div>
+            </div>
+
+            <div class="mb-4 pb-3 border-bottom">
+                <label class="form-label text-muted fw-bold small ms-1">Пароль для шифрования ZIP архива</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-file-zipper"></i></span>
+                    <input type="password" id="zipPass" data-key="zip_pass" class="form-control form-control-custom border-start-0" oninput="saveText(this)" placeholder="Придумайте пароль" style="border-radius: 0 12px 12px 0;">
+                </div>
+            </div>
+
+            <div id="backupStatus" class="alert alert-info d-none small fw-bold text-center mb-3 py-2 rounded-3"></div>
+
+            <div class="row g-2 mb-2">
+                <div class="col-6">
+                    <button class="btn btn-primary w-100 fw-bold rounded-3 shadow-sm py-2" onclick="startBackup('finance')">
+                        <i class="fa-solid fa-cloud-arrow-up d-block fs-5 mb-1"></i>Бекап Финансы
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button class="btn btn-primary w-100 fw-bold rounded-3 shadow-sm py-2" onclick="startBackup('crm')">
+                        <i class="fa-solid fa-cloud-arrow-up d-block fs-5 mb-1"></i>Бекап CRM
+                    </button>
+                </div>
+            </div>
+            <div class="row g-2">
+                <div class="col-6">
+                    <button class="btn btn-light border text-dark w-100 fw-bold rounded-3 shadow-sm py-2" onclick="openRestoreModal('finance')">
+                        <i class="fa-solid fa-cloud-arrow-down d-block fs-5 mb-1 text-primary"></i>Восстановить
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button class="btn btn-light border text-dark w-100 fw-bold rounded-3 shadow-sm py-2" onclick="openRestoreModal('crm')">
+                        <i class="fa-solid fa-cloud-arrow-down d-block fs-5 mb-1 text-primary"></i>Восстановить
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal fade" id="restoreModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered align-items-end mb-0" style="min-height: 100vh;">
+            <div class="modal-content border-0 rounded-top-4" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Доступные копии</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pb-5">
+                    <div id="restoreStatus" class="alert alert-info d-none small fw-bold"></div>
+                    <div id="backupsListContainer" class="d-flex flex-column gap-2 mt-2" style="max-height: 50vh; overflow-y: auto;">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="file:///android_asset/js/bootstrap.bundle.min.js"></script>
+    <script>
+        if (window.Android) { Android.log("settings.htm loaded"); }
+
+        // 1. Инициализация при загрузке
+        window.onload = function() {
+            if (window.Android) {
+                const settings = document.querySelectorAll('[data-key]');
+                settings.forEach(el => {
+                    const key = el.getAttribute('data-key');
+                    if (el.type === 'checkbox') {
+                        el.checked = window.Android.getBool(key);
+                    } else {
+                        el.value = window.Android.getString(key);
+                    }
+                });
+                showStatus("Настройки синхронизированы", "success");
+            }
+        };
+
+        // 2. Универсальный статус-бар сверху
+        let statusTimeout = null;
+        function showStatus(message, type = "success") {
+            const alert = document.getElementById('statusAlert');
+            alert.className = `alert alert-${type} shadow-sm rounded-3 fw-bold small text-center mb-3 border-0 py-2`;
+            alert.innerText = message;
+            alert.classList.remove('d-none');
+            
+            clearTimeout(statusTimeout);
+            statusTimeout = setTimeout(() => {
+                alert.classList.add('d-none');
+            }, 3000);
+        }
+
+        // 3. Сохранение текста (с задержкой)
+        let timeout = null;
+        function saveText(element) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                const key = element.getAttribute('data-key');
+                const value = element.value;
+                if (window.Android) {
+                    window.Android.saveString(key, value);
+                    showStatus("Сохранено", "success");
+                }
+            }, 500);
+        }
+
+        // 4. Сохранение свитчей
+        function toggle(element) {
+            const key = element.getAttribute('data-key');
+            const value = element.checked;
+            if (window.Android) {
+                window.Android.saveBool(key, value);
+                showStatus("Настройка обновлена", "success");
+            }
+        }
+
+        // 5. Обновление извне (Android)
+        function onSecurityUpdate(key, value, message) {
+            showStatus(message, "info");
+            const element = document.querySelector(`[data-key="${key}"]`);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    element.checked = value;
+                } else {
+                    element.value = value;
+                }
+            }
+        }
+
+        // ==========================================
+        // ЛОГИКА РЕЗЕРВНОГО КОПИРОВАНИЯ
+        // ==========================================
+
+        function startBackup(appName) {
+            const statusDiv = document.getElementById('backupStatus');
+            statusDiv.innerText = `Архивация модуля ${appName.toUpperCase()}...`;
+            statusDiv.className = 'alert alert-info d-block small fw-bold text-center mb-3 py-2 rounded-3';
+            
+            if (window.Android && window.Android.triggerBackup) {
+                window.Android.triggerBackup(appName);
+            } else {
+                setTimeout(() => {
+                    statusDiv.innerText = 'Отладка: Успешно отправлено!';
+                    statusDiv.className = 'alert alert-success d-block small fw-bold text-center mb-3 py-2 rounded-3';
+                }, 1500);
+            }
+        }
+
+        // Ожидается, что Android вызовет эту функцию по завершению бекапа (добавь в MainBridge.kt)
+        function onBackupFinished(success, message) {
+            const statusDiv = document.getElementById('backupStatus');
+            statusDiv.innerText = message;
+            statusDiv.className = success 
+                ? 'alert alert-success d-block small fw-bold text-center mb-3 py-2 rounded-3'
+                : 'alert alert-danger d-block small fw-bold text-center mb-3 py-2 rounded-3';
+        }
+
+        // ==========================================
+        // ЛОГИКА ВОССТАНОВЛЕНИЯ
+        // ==========================================
+        
+        let currentRestoreApp = '';
+        let restoreModal;
+
+        function openRestoreModal(appName) {
+            currentRestoreApp = appName;
+            if (!restoreModal) { restoreModal = new bootstrap.Modal(document.getElementById('restoreModal')); }
+            
+            document.getElementById('restoreStatus').classList.add('d-none');
+            document.getElementById('backupsListContainer').innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <div class="spinner-border spinner-border-sm me-2 text-primary" role="status"></div> 
+                    <span class="fw-bold">Поиск на Я.Диске...</span>
+                </div>`;
+            
+            restoreModal.show();
+            
+            if (window.Android && window.Android.fetchBackupsList) {
+                window.Android.fetchBackupsList(appName);
+            } else {
+                // Тестовые данные для браузера
+                setTimeout(() => renderBackupsList('[{"fileName":"backup_finance_1715421523.zip", "timestamp":1715421523000}]'), 1000);
+            }
+        }
+
+        function renderBackupsList(jsonString) {
+            const container = document.getElementById('backupsListContainer');
+            try {
+                const backups = JSON.parse(jsonString);
+                
+                if (backups.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-folder-open fs-1 mb-3 opacity-25"></i>
+                            <h6 class="fw-bold mb-0">Копии не найдены</h6>
+                            <p class="small opacity-75">В облаке пока пусто</p>
+                        </div>`;
+                    return;
+                }
+
+                let html = '';
+                backups.forEach((b, index) => {
+                    const dateStr = new Date(b.timestamp).toLocaleString('ru-RU', { 
+                        day: '2-digit', month: '2-digit', year: 'numeric', 
+                        hour: '2-digit', minute: '2-digit' 
+                    });
+                    
+                    const isLatest = index === 0;
+                    const borderClass = isLatest ? 'border-primary border-2 bg-light-primary' : 'border bg-white';
+                    
+                    html += `
+                    <div class="card ${borderClass} shadow-sm clickable-card mb-2" onclick="startRestore('${b.fileName}')">
+                        <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 fw-bold text-dark">${dateStr}</h6>
+                                <small class="text-muted" style="font-size: 0.65rem;">${b.fileName}</small>
+                            </div>
+                            <div class="icon-box ${isLatest ? 'bg-primary text-white' : 'bg-light text-primary'} shadow-sm" style="width: 36px; height: 36px;">
+                                <i class="fa-solid fa-download"></i>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<div class="alert alert-danger text-center fw-bold py-3 m-3">Ошибка чтения данных</div>';
+            }
+        }
+
+        function startRestore(fileName) {
+            if (!confirm(`Вы точно хотите восстановить данные из ${fileName}?\n\nТекущие данные модуля ${currentRestoreApp.toUpperCase()} будут полностью перезаписаны!`)) {
+                return;
+            }
+            
+            showRestoreProgress('Скачивание и распаковка...');
+            if (window.Android && window.Android.restoreBackup) {
+                window.Android.restoreBackup(fileName, currentRestoreApp);
+            }
+        }
+
+        function showRestoreProgress(message) {
+            const statusDiv = document.getElementById('restoreStatus');
+            statusDiv.innerText = message;
+            statusDiv.classList.remove('d-none');
+            
+            if (message.includes('Успешно')) {
+                statusDiv.className = 'alert alert-success d-block small fw-bold mb-3 text-center';
+            } else if (message.includes('Ошибка')) {
+                statusDiv.className = 'alert alert-danger d-block small fw-bold mb-3 text-center';
+            } else {
+                statusDiv.className = 'alert alert-info d-block small fw-bold mb-3 text-center';
+            }
+        }
+    </script>
+</body>
+</html>
