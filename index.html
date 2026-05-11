@@ -19,39 +19,29 @@
         
         .account-card {
             min-width: 140px; border-radius: 16px; color: white; padding: 16px;
-            position: relative; overflow: hidden; border: none;
+            position: relative; overflow: hidden; border: none; cursor: pointer; transition: 0.2s;
         }
+        .account-card:active { transform: scale(0.95); }
+        
         .acc-cash { background: linear-gradient(135deg, #198754 0%, #146c43 100%); }
         .acc-card { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); }
         .acc-credit { background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%); }
         .acc-add { background: #e9ecef; color: #6c757d; border: 2px dashed #ced4da; min-width: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px;}
         
         .transaction-card { border-radius: 16px; border: none; cursor: pointer; transition: 0.2s; }
-        .icon-box {
-            width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
-            border-radius: 12px; font-size: 20px; flex-shrink: 0;
-        }
+        .icon-box { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 20px; flex-shrink: 0; }
         .icon-income { background-color: #d1e7dd; color: #198754; }
         .icon-expense { background-color: #f8d7da; color: #dc3545; }
+        .icon-transfer { background-color: #e2e3e5; color: #6c757d; }
         
-        /* Основная плавающая кнопка */
         .fab {
             position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px;
             border-radius: 30px; font-size: 24px; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
             z-index: 1040; display: flex; align-items: center; justify-content: center;
-            /* ДОБАВИТЬ ЭТУ СТРОКУ ДЛЯ ПЛАВНОСТИ: */
             transition: 0.3s ease-in-out;
         }
+        .fab-hidden { opacity: 0; visibility: hidden; transform: scale(0.8); pointer-events: none; }
         
-        /* ДОБАВИТЬ ЭТОТ НОВЫЙ КЛАСС: */
-        .fab-hidden {
-            opacity: 0; 
-            visibility: hidden; 
-            transform: scale(0.8);
-            pointer-events: none;
-        }
-
-       /* КНОПКА "НАВЕРХ" */
         .scroll-top-btn {
             position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px;
             border-radius: 30px; font-size: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -59,11 +49,7 @@
             opacity: 0; visibility: hidden; transition: 0.3s ease-in-out; 
             background-color: white; color: #6c757d; border: none;
         }
-        .scroll-top-btn.visible {
-            opacity: 1; visibility: visible;
-        }
-        
-        #addCategoryModal { z-index: 1060; }
+        .scroll-top-btn.visible { opacity: 1; visibility: visible; }
 
         .morris-hover { position: absolute; z-index: 1000 !important; }
         .chart-container-card { overflow: visible !important; } 
@@ -101,7 +87,7 @@
         </div>
 
         <h6 class="text-muted fw-bold mb-3 px-1">История операций</h6>
-        <div id="transactionsList" class="d-flex flex-column gap-2"></div>
+        <div id="transactionsList" class="d-flex flex-column gap-2 mb-5"></div>
     </div>
 
     <button class="btn btn-primary fab" onclick="showAddModal()">
@@ -112,105 +98,45 @@
 <div id="statsScreen" class="d-none">
     <div class="container py-3">
         <div class="d-flex align-items-center mb-4 pt-1">
-            <button class="btn btn-light rounded-circle me-3 shadow-sm" onclick="closeStatsScreen()" style="width: 40px; height: 40px;">
-                <i class="fa-solid fa-arrow-left"></i>
-            </button>
+            <button class="btn btn-light rounded-circle me-3 shadow-sm" onclick="closeStatsScreen()" style="width: 40px; height: 40px;"><i class="fa-solid fa-arrow-left"></i></button>
             <h5 class="mb-0 fw-bold">Аналитика</h5>
         </div>
-
         <div class="mb-4">
             <select id="statsPeriod" class="form-select border-0 shadow-sm fw-bold text-primary mb-2" onchange="togglePeriodSelector()">
-                <option value="today">Сегодня</option>
-                <option value="24h">За последние 24 часа</option>
-                <option value="week">Текущая неделя</option>
-                <option value="month" selected>Этот месяц</option>
-                <option value="lastMonth">Прошлый месяц</option>
-                <option value="custom">Выбрать месяц...</option>
-                <option value="year">Этот год</option>
-                <option value="all">За всё время</option>
+                <option value="today">Сегодня</option><option value="24h">За последние 24 часа</option>
+                <option value="week">Текущая неделя</option><option value="month" selected>Этот месяц</option>
+                <option value="lastMonth">Прошлый месяц</option><option value="custom">Выбрать месяц...</option>
+                <option value="year">Этот год</option><option value="all">За всё время</option>
             </select>
-
             <div id="customMonthSelector" class="d-none animate__animated animate__fadeIn">
                 <div class="row g-2">
-                    <div class="col-7">
-                        <select id="statsMonth" class="form-select border-0 shadow-sm fw-bold" onchange="triggerCalculateStats()">
-                            <option value="0">Январь</option><option value="1">Февраль</option><option value="2">Март</option>
-                            <option value="3">Апрель</option><option value="4">Май</option><option value="5">Июнь</option>
-                            <option value="6">Июль</option><option value="7">Август</option><option value="8">Сентябрь</option>
-                            <option value="9">Октябрь</option><option value="10">Ноябрь</option><option value="11">Декабрь</option>
-                        </select>
-                    </div>
-                    <div class="col-5">
-                        <select id="statsYear" class="form-select border-0 shadow-sm fw-bold" onchange="triggerCalculateStats()"></select>
-                    </div>
+                    <div class="col-7"><select id="statsMonth" class="form-select border-0 shadow-sm fw-bold" onchange="triggerCalculateStats()"><option value="0">Январь</option><option value="1">Февраль</option><option value="2">Март</option><option value="3">Апрель</option><option value="4">Май</option><option value="5">Июнь</option><option value="6">Июль</option><option value="7">Август</option><option value="8">Сентябрь</option><option value="9">Октябрь</option><option value="10">Ноябрь</option><option value="11">Декабрь</option></select></div>
+                    <div class="col-5"><select id="statsYear" class="form-select border-0 shadow-sm fw-bold" onchange="triggerCalculateStats()"></select></div>
                 </div>
             </div>
         </div>
-
         <div class="row g-2 mb-4">
-            <div class="col-6">
-                <div class="card border-0 shadow-sm bg-success text-white">
-                    <div class="card-body p-3 text-center">
-                        <small class="opacity-75 d-block mb-1">Доходы (Чист.)</small>
-                        <h5 class="fw-bold mb-0" id="statIncome">0 ₽</h5>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6">
-                <div class="card border-0 shadow-sm bg-danger text-white">
-                    <div class="card-body p-3 text-center">
-                        <small class="opacity-75 d-block mb-1">Расходы</small>
-                        <h5 class="fw-bold mb-0" id="statExpense">0 ₽</h5>
-                    </div>
-                </div>
-            </div>
-            <div class="col-12 mt-2">
-                <div class="card border-0 shadow-sm bg-white">
-                    <div class="card-body p-3 d-flex justify-content-between align-items-center">
-                        <span class="text-muted fw-bold">Итог (Дельта):</span>
-                        <span class="fs-4 fw-bold text-dark" id="statDelta">0 ₽</span>
-                    </div>
-                </div>
-            </div>
+            <div class="col-6"><div class="card border-0 shadow-sm bg-success text-white"><div class="card-body p-3 text-center"><small class="opacity-75 d-block mb-1">Доходы</small><h5 class="fw-bold mb-0" id="statIncome">0 ₽</h5></div></div></div>
+            <div class="col-6"><div class="card border-0 shadow-sm bg-danger text-white"><div class="card-body p-3 text-center"><small class="opacity-75 d-block mb-1">Расходы</small><h5 class="fw-bold mb-0" id="statExpense">0 ₽</h5></div></div></div>
+            <div class="col-12 mt-2"><div class="card border-0 shadow-sm bg-white"><div class="card-body p-3 d-flex justify-content-between align-items-center"><span class="text-muted fw-bold">Итог (Дельта):</span><span class="fs-4 fw-bold text-dark" id="statDelta">0 ₽</span></div></div></div>
         </div>
-
         <div id="financeChartContainer" class="card border-0 shadow-sm mb-4 chart-container-card d-none">
-            <div class="card-body p-2 pt-3">
-                <h6 class="text-muted fw-bold mb-3 px-2 text-center" id="chartTitle">Динамика</h6>
-                <div id="financeChart" style="height: 250px;"></div>
-            </div>
+            <div class="card-body p-2 pt-3"><h6 class="text-muted fw-bold mb-3 px-2 text-center" id="chartTitle">Динамика</h6><div id="financeChart" style="height: 250px;"></div></div>
         </div>
-
         <div id="incomeStatsContainer" class="d-none mb-4">
-            <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-arrow-down text-success me-2"></i>Структура доходов</h6>
-            <div class="card border-0 shadow-sm chart-container-card mb-3">
-                <div class="card-body p-2"><div id="incomeDonutChart" style="height: 220px;"></div></div>
-            </div>
+            <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-arrow-down text-success me-2"></i>Доходы</h6>
+            <div class="card border-0 shadow-sm chart-container-card mb-3"><div class="card-body p-2"><div id="incomeDonutChart" style="height: 220px;"></div></div></div>
             <div id="categoryStatsIncomeList" class="d-flex flex-column gap-2"></div>
         </div>
-
         <div id="expenseStatsContainer" class="d-none mb-4">
-            <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-arrow-up text-danger me-2"></i>Структура расходов</h6>
-            <div class="card border-0 shadow-sm chart-container-card mb-3">
-                <div class="card-body p-2"><div id="expenseDonutChart" style="height: 220px;"></div></div>
-            </div>
+            <h6 class="text-muted fw-bold mb-3 px-1"><i class="fa-solid fa-arrow-up text-danger me-2"></i>Расходы</h6>
+            <div class="card border-0 shadow-sm chart-container-card mb-3"><div class="card-body p-2"><div id="expenseDonutChart" style="height: 220px;"></div></div></div>
             <div id="categoryStatsExpenseList" class="d-flex flex-column gap-2"></div>
         </div>
-
         <h6 class="text-muted fw-bold mb-3 px-1 mt-5 border-top pt-4">Операции за выбранный период</h6>
         <div id="statsTransactionsList" class="d-flex flex-column gap-2 mb-5"></div>
-
     </div>
 </div>
-
-<div id="loadingOverlay" class="loading-overlay d-none">
-    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-    <h6 class="mt-3 fw-bold text-dark opacity-75">Считаем статистику...</h6>
-</div>
-
-<button id="scrollTopBtn" class="scroll-top-btn" onclick="scrollToTop()">
-    <i class="fa-solid fa-arrow-up"></i>
-</button>
 
 <div class="modal fade" id="addModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered align-items-end mb-0" style="min-height: 100vh;">
@@ -241,8 +167,92 @@
     </div>
 </div>
 
-<div class="modal fade" id="addAccountModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow"><div class="modal-header border-0 pb-0"><h6 class="modal-title fw-bold">Добавить счет</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label text-muted small mb-1">Название</label><input type="text" id="newAccName" class="form-control" placeholder="Моя карта"></div><div class="mb-4"><label class="form-label text-muted small mb-1">Тип счета</label><select id="newAccType" class="form-select"><option value="card">💳 Дебетовая карта</option><option value="cash">💵 Наличные</option><option value="credit">🏦 Кредитка / Долг</option></select></div><button class="btn btn-primary w-100 fw-bold" onclick="saveNewAccount()">Создать счет</button></div></div></div></div>
+<div class="modal fade" id="addAccountModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0"><h6 class="modal-title fw-bold">Добавить счет</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label text-muted small mb-1">Название</label><input type="text" id="newAccName" class="form-control" placeholder="Моя карта"></div>
+                <div class="mb-4"><label class="form-label text-muted small mb-1">Тип счета</label><select id="newAccType" class="form-select"><option value="card">💳 Дебетовая карта</option><option value="cash">💵 Наличные</option><option value="credit">🏦 Кредитка / Долг</option></select></div>
+                <button class="btn btn-primary w-100 fw-bold" onclick="saveNewAccount()">Создать счет</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editAccountModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered align-items-end mb-0" style="min-height: 100vh;">
+        <div class="modal-content border-0 rounded-top-4" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
+            <div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold">Настройки счета</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <small class="text-muted d-block mb-1">Текущий баланс</small>
+                    <h2 class="fw-bold text-primary mb-0" id="editAccBalance">0 ₽</h2>
+                </div>
+
+                <div class="row g-2 mb-4">
+                    <div class="col-6">
+                        <button class="btn btn-light border shadow-sm w-100 py-3 fw-bold text-dark" onclick="openTransferModal()">
+                            <i class="fa-solid fa-arrow-right-arrow-left d-block fs-4 text-primary mb-1"></i>Перевод
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-light border shadow-sm w-100 py-3 fw-bold text-dark" onclick="openAdjustModal()">
+                            <i class="fa-solid fa-scale-balanced d-block fs-4 text-warning mb-1"></i>Корректировка
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-3"><label class="form-label text-muted small mb-1">Название счета</label><input type="text" id="editAccName" class="form-control fw-bold"></div>
+                <div class="mb-4"><label class="form-label text-muted small mb-1">Оформление / Тип</label><select id="editAccType" class="form-select"><option value="card">💳 Дебетовая карта (Синий)</option><option value="cash">💵 Наличные (Зеленый)</option><option value="credit">🏦 Кредитка / Долг (Красный)</option></select></div>
+                
+                <button class="btn btn-primary w-100 fw-bold py-3 rounded-3 mb-2" onclick="saveEditedAccount()">Сохранить изменения</button>
+                <button class="btn btn-outline-danger w-100 py-2 rounded-3" onclick="deleteAccount()"><i class="fa-solid fa-trash me-2"></i>Удалить счет</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="transferModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0"><h6 class="modal-title fw-bold">Перевод между счетами</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center justify-content-between mb-3 bg-light p-3 rounded border">
+                    <div class="text-center w-100">
+                        <small class="text-muted d-block">Откуда</small>
+                        <strong id="transferFromName" class="text-danger"></strong>
+                    </div>
+                    <i class="fa-solid fa-arrow-right mx-3 text-muted"></i>
+                    <div class="text-center w-100">
+                        <small class="text-muted d-block">Куда</small>
+                        <select id="transferToAcc" class="form-select form-select-sm fw-bold bg-white text-success border-success"></select>
+                    </div>
+                </div>
+                <div class="mb-4"><label class="form-label text-muted small mb-1">Сумма перевода (₽)</label><input type="number" id="transferAmount" class="form-control form-control-lg fw-bold text-center" placeholder="0" inputmode="decimal"></div>
+                <button class="btn btn-primary w-100 fw-bold py-2 rounded-3" onclick="executeTransfer()"><i class="fa-solid fa-check me-2"></i>Выполнить перевод</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="adjustModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0"><h6 class="modal-title fw-bold">Корректировка баланса</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <p class="small text-muted mb-3">Введите реальную сумму, которая сейчас находится на счету. Приложение само создаст транзакцию разницы.</p>
+                <div class="mb-4"><label class="form-label text-muted small mb-1">Фактический баланс (₽)</label><input type="number" id="adjustNewBalance" class="form-control form-control-lg fw-bold" placeholder="0" inputmode="decimal"></div>
+                <button class="btn btn-primary w-100 fw-bold py-2 rounded-3" onclick="executeAdjust()">Скорректировать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="addCategoryModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow"><div class="modal-header border-0 pb-0"><h6 class="modal-title fw-bold" id="categoryModalTitle">Новая категория</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="text" id="newCategoryName" class="form-control mb-3" placeholder="Название (например, Кофе)"><button class="btn btn-primary w-100 fw-bold" onclick="saveNewCategory()">Добавить</button></div></div></div></div>
+
+<div id="loadingOverlay" class="loading-overlay d-none"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div><h6 class="mt-3 fw-bold text-dark opacity-75">Считаем статистику...</h6></div>
+<button id="scrollTopBtn" class="scroll-top-btn" onclick="scrollToTop()"><i class="fa-solid fa-arrow-up"></i></button>
 
 <script src="file:///android_asset/js/jquery.min.js"></script>
 <script src="file:///android_asset/js/raphael.min.js"></script>
@@ -254,27 +264,30 @@
     let allCategories = [];
     let allAccounts = [];
     
+    // Переменные пагинации
     let currentOffset = 0;
     const LOAD_LIMIT = 20;
     let isLoading = false;
     let hasMoreData = true;
 
-    let statsOffset = 0;
-    let statsIsLoading = false;
-    let statsHasMoreData = true;
+    // Переменные для редактирования счетов
+    let currentEditAccountId = null;
+    let currentAccountBalance = 0;
 
     const addModal = new bootstrap.Modal(document.getElementById('addModal'));
     const accModal = new bootstrap.Modal(document.getElementById('addAccountModal'));
     const categoryModal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
+    let editAccModal, transferModal, adjustModal;
 
+    // === ИСТОРИЯ И РОУТИНГ SPA ===
     window.addEventListener('popstate', function(event) {
         const state = event.state;
         if (document.getElementById('addModal').classList.contains('show')) addModal.hide();
+        if (document.getElementById('editAccountModal').classList.contains('show')) editAccModal.hide();
         
         if (!state || !state.page) {
             document.getElementById('statsScreen').classList.add('d-none');
             document.getElementById('mainScreen').classList.remove('d-none');
-            // При возврате на главную, пересчитываем балансы (если что-то менялось в стате)
             updateBalancesFast();
             loadTransactions(true);
         } else if (state.page === 'stats') {
@@ -283,23 +296,35 @@
         }
     });
 
-    document.getElementById('addModal').addEventListener('hide.bs.modal', function () {
-        if (history.state && history.state.page === 'modal') history.back();
+    document.addEventListener('DOMContentLoaded', () => {
+        editAccModal = new bootstrap.Modal(document.getElementById('editAccountModal'));
+        transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
+        adjustModal = new bootstrap.Modal(document.getElementById('adjustModal'));
+        
+        // Автовозврат при закрытии модалок
+        const modals = ['addModal', 'editAccountModal', 'transferModal', 'adjustModal'];
+        modals.forEach(id => {
+            document.getElementById(id).addEventListener('hide.bs.modal', function () {
+                if (history.state && history.state.page === 'modal') history.back();
+            });
+        });
+        initDb();
     });
 
+    // === ИНИЦИАЛИЗАЦИЯ ===
     function initDb() {
         if (!window.Android) return;
-        window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, amount REAL, category TEXT, note TEXT, timestamp INTEGER, source_app TEXT DEFAULT 'finance')`);
+        window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, amount REAL, category TEXT, note TEXT, timestamp INTEGER, source_app TEXT DEFAULT 'finance', account_id INTEGER DEFAULT 1)`);
         window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT)`);
         window.Android.executeSql(DB_NAME, `CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT)`);
+        
+        // Безопасная миграция колонок если их не было
         try { window.Android.executeSql(DB_NAME, `ALTER TABLE transactions ADD COLUMN account_id INTEGER DEFAULT 1`); } catch(e) {}
 
         seedDataIfEmpty();
         allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC"));
-        allAccounts = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM accounts ORDER BY id ASC"));
         
         updateCategorySelect();
-        updateAccountSelect();
         updateBalancesFast(); 
         loadTransactions(true); 
     }
@@ -307,19 +332,24 @@
     function seedDataIfEmpty() {
         try {
             if (JSON.parse(window.Android.querySql(DB_NAME, "SELECT COUNT(*) as c FROM categories"))[0].c === 0) {
-                const defCat = ["('Продукты', 'expense')", "('Транспорт', 'expense')", "('Бизнес (Запчасти)', 'expense')", "('Зарплата', 'income')", "('Услуги ремонта', 'income')"];
+                const defCat = ["('Продукты', 'expense')", "('Транспорт', 'expense')", "('Реклама', 'expense')", "('Бизнес (Запчасти)', 'expense')", "('Зарплата', 'income')", "('Услуги ремонта', 'income')", "('Перевод', 'income')", "('Перевод', 'expense')", "('Корректировка', 'income')", "('Корректировка', 'expense')"];
                 window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ${defCat.join(',')}`);
             }
             if (JSON.parse(window.Android.querySql(DB_NAME, "SELECT COUNT(*) as c FROM accounts"))[0].c === 0) {
                 window.Android.executeSql(DB_NAME, `INSERT INTO accounts (id, name, type) VALUES (1, 'Наличные', 'cash')`);
-                window.Android.executeSql(DB_NAME, `INSERT INTO accounts (id, name, type) VALUES (2, 'Сбербанк', 'card')`);
+                window.Android.executeSql(DB_NAME, `INSERT INTO accounts (id, name, type) VALUES (2, 'Основная карта', 'card')`);
             }
         } catch (e) {}
     }
 
+    // === СЧЕТА И БАЛАНСЫ ===
     function updateBalancesFast() {
+        allAccounts = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM accounts ORDER BY id ASC"));
+        updateAccountSelect();
+
         const sql = "SELECT account_id, type, SUM(amount) as total FROM transactions GROUP BY account_id, type";
-        const rows = JSON.parse(window.Android.querySql(DB_NAME, sql));
+        let rows = [];
+        try { rows = JSON.parse(window.Android.querySql(DB_NAME, sql)); } catch(e){}
         
         let balances = {};
         allAccounts.forEach(acc => balances[acc.id] = 0);
@@ -340,8 +370,10 @@
 
         allAccounts.forEach(acc => {
             accContainer.innerHTML += `
-                <div class="card account-card shadow-sm acc-${acc.type}">
-                    <div class="d-flex justify-content-between align-items-start mb-2"><i class="fa-solid ${icons[acc.type] || 'fa-wallet'} fs-5 opacity-75"></i></div>
+                <div class="card account-card shadow-sm acc-${acc.type}" onclick="openEditAccountModal(${acc.id}, ${balances[acc.id]})">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <i class="fa-solid ${icons[acc.type] || 'fa-wallet'} fs-5 opacity-75"></i>
+                    </div>
                     <small class="opacity-75 text-truncate d-block" style="max-width: 100px;">${acc.name}</small>
                     <h5 class="fw-bold mb-0 mt-1">${Number(balances[acc.id]).toLocaleString('ru-RU')} ₽</h5>
                 </div>
@@ -351,6 +383,131 @@
         document.getElementById('totalBalanceAll').innerText = Number(totalAll).toLocaleString('ru-RU') + ' ₽';
     }
 
+    // === УПРАВЛЕНИЕ СЧЕТАМИ (РЕДАКТИРОВАНИЕ, ПЕРЕВОД, КОРРЕКТИРОВКА) ===
+    function showAddAccountModal() { document.getElementById('newAccName').value = ''; accModal.show(); }
+    
+    function saveNewAccount() {
+        const name = document.getElementById('newAccName').value.trim().replace(/'/g, "''");
+        const type = document.getElementById('newAccType').value;
+        if (!name) return;
+        window.Android.executeSql(DB_NAME, `INSERT INTO accounts (name, type) VALUES ('${name}', '${type}')`);
+        accModal.hide();
+        updateBalancesFast();
+    }
+
+    function openEditAccountModal(id, bal) {
+        const acc = allAccounts.find(a => a.id === id);
+        if(!acc) return;
+        currentEditAccountId = id;
+        currentAccountBalance = bal;
+        
+        document.getElementById('editAccName').value = acc.name;
+        document.getElementById('editAccType').value = acc.type;
+        document.getElementById('editAccBalance').innerText = Number(bal).toLocaleString('ru-RU') + ' ₽';
+        
+        editAccModal.show();
+        history.pushState({ page: 'modal' }, "Modal", "#modal");
+    }
+
+    function saveEditedAccount() {
+        const name = document.getElementById('editAccName').value.trim().replace(/'/g, "''");
+        const type = document.getElementById('editAccType').value;
+        if (!name) return;
+        window.Android.executeSql(DB_NAME, `UPDATE accounts SET name='${name}', type='${type}' WHERE id=${currentEditAccountId}`);
+        editAccModal.hide();
+        updateBalancesFast();
+        loadTransactions(true); // Обновляем список, чтобы поменялись названия счетов у транзакций
+    }
+
+    function deleteAccount() {
+        if(confirm("Удалить счет? Все операции по этому счету останутся в базе (привяжутся к удаленному счету).")) {
+            window.Android.executeSql(DB_NAME, `DELETE FROM accounts WHERE id=${currentEditAccountId}`);
+            editAccModal.hide();
+            updateBalancesFast();
+        }
+    }
+
+    function openTransferModal() {
+        editAccModal.hide(); // Прячем редактирование
+        
+        const fromAcc = allAccounts.find(a => a.id === currentEditAccountId);
+        document.getElementById('transferFromName').innerText = fromAcc.name;
+        
+        const selectTo = document.getElementById('transferToAcc');
+        selectTo.innerHTML = '';
+        allAccounts.forEach(a => {
+            if (a.id !== currentEditAccountId) {
+                selectTo.innerHTML += `<option value="${a.id}">${a.name}</option>`;
+            }
+        });
+        
+        if (selectTo.options.length === 0) {
+            alert("У вас только один счет. Перевод невозможен.");
+            return;
+        }
+
+        document.getElementById('transferAmount').value = '';
+        setTimeout(() => { transferModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal"); }, 400);
+    }
+
+    function executeTransfer() {
+        const fromId = currentEditAccountId;
+        const toId = parseInt(document.getElementById('transferToAcc').value);
+        const amount = parseFloat(document.getElementById('transferAmount').value);
+        
+        if (isNaN(amount) || amount <= 0) { alert("Укажите сумму"); return; }
+        
+        const fromAcc = allAccounts.find(a => a.id === fromId);
+        const toAcc = allAccounts.find(a => a.id === toId);
+        const ts = Date.now();
+        
+        // Проверяем наличие категории "Перевод", если нет - создаем
+        const checkCat = allCategories.find(c => c.name === 'Перевод' && c.type === 'expense');
+        if(!checkCat) {
+            window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ('Перевод', 'expense'), ('Перевод', 'income')`);
+            allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC"));
+        }
+
+        // Создаем две транзакции
+        window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('expense', ${amount}, 'Перевод', 'На счет: ${toAcc.name.replace(/'/g, "''")}', ${ts}, 'finance', ${fromId})`);
+        window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('income', ${amount}, 'Перевод', 'Со счета: ${fromAcc.name.replace(/'/g, "''")}', ${ts}, 'finance', ${toId})`);
+        
+        transferModal.hide();
+        updateBalancesFast();
+        loadTransactions(true);
+    }
+
+    function openAdjustModal() {
+        editAccModal.hide();
+        document.getElementById('adjustNewBalance').value = currentAccountBalance;
+        setTimeout(() => { adjustModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal"); }, 400);
+    }
+
+    function executeAdjust() {
+        const newBalance = parseFloat(document.getElementById('adjustNewBalance').value);
+        if (isNaN(newBalance)) { alert("Введите фактический баланс"); return; }
+        
+        const diff = newBalance - currentAccountBalance;
+        if (diff === 0) { adjustModal.hide(); return; }
+        
+        const type = diff > 0 ? 'income' : 'expense';
+        const amount = Math.abs(diff);
+        const ts = Date.now();
+        
+        const checkCat = allCategories.find(c => c.name === 'Корректировка' && c.type === 'expense');
+        if(!checkCat) {
+            window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ('Корректировка', 'expense'), ('Корректировка', 'income')`);
+            allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC"));
+        }
+
+        window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('${type}', ${amount}, 'Корректировка', 'Синхронизация баланса', ${ts}, 'finance', ${currentEditAccountId})`);
+        
+        adjustModal.hide();
+        updateBalancesFast();
+        loadTransactions(true);
+    }
+
+    // === ПАГИНАЦИЯ И СПИСКИ ===
     function loadTransactions(reset = false) {
         if (reset) { currentOffset = 0; hasMoreData = true; document.getElementById('transactionsList').innerHTML = ''; }
         if (!hasMoreData || isLoading) return;
@@ -361,48 +518,41 @@
             const newTx = JSON.parse(window.Android.querySql(DB_NAME, sql));
             if (newTx.length < LOAD_LIMIT) hasMoreData = false;
             currentOffset += newTx.length;
-            renderTxChunk(newTx, 'transactionsList', reset);
-        } catch (e) {}
+            renderTxChunk(newTx, reset);
+        } catch (e) { console.error(e); }
         isLoading = false;
     }
 
-    function loadStatsTransactions(reset = false) {
-        if (reset) { statsOffset = 0; statsHasMoreData = true; document.getElementById('statsTransactionsList').innerHTML = ''; }
-        if (!statsHasMoreData || statsIsLoading) return;
-        statsIsLoading = true;
-
-        const range = getStatsDateRange();
-        const sql = `SELECT * FROM transactions WHERE timestamp >= ${range.startTime} AND timestamp < ${range.endTime} ORDER BY timestamp DESC LIMIT ${LOAD_LIMIT} OFFSET ${statsOffset}`;
-        try {
-            const newTx = JSON.parse(window.Android.querySql(DB_NAME, sql));
-            if (newTx.length < LOAD_LIMIT) statsHasMoreData = false;
-            statsOffset += newTx.length;
-            renderTxChunk(newTx, 'statsTransactionsList', reset);
-        } catch (e) {}
-        statsIsLoading = false;
-    }
-
-    function renderTxChunk(txChunk, containerId, isReset) {
-        const container = document.getElementById(containerId);
+    function renderTxChunk(txChunk, isReset) {
+        const container = document.getElementById('transactionsList');
         if (isReset && txChunk.length === 0) { container.innerHTML = '<p class="text-center text-muted mt-4">Нет операций</p>'; return; }
 
         let html = '';
         txChunk.forEach(tx => {
             const isInc = tx.type === 'income';
-            const accName = (allAccounts.find(a => a.id === (tx.account_id || 1)) || {}).name || 'Счет удален';
+            const isTransfer = tx.category === 'Перевод';
+            const sign = isInc ? '+' : '-';
+            const colorClass = isTransfer ? 'text-secondary' : (isInc ? 'text-success' : '');
+            
+            let iconClass = isInc ? 'icon-income fa-arrow-down' : 'icon-expense fa-cart-shopping';
+            if (isTransfer) iconClass = 'icon-transfer fa-arrow-right-arrow-left';
+
+            const accName = (allAccounts.find(a => a.id === (tx.account_id || 1)) || {}).name || 'Удаленный счет';
             const dateStr = new Date(tx.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
             const safeTx = JSON.stringify(tx).replace(/'/g, "&apos;").replace(/"/g, '&quot;');
 
             html += `
                 <div class="card transaction-card shadow-sm mb-1" onclick="openEditTxModal('${safeTx}')">
                     <div class="card-body p-3 d-flex align-items-center">
-                        <div class="icon-box ${isInc ? 'icon-income' : 'icon-expense'} me-3"><i class="fa-solid ${isInc ? 'fa-arrow-down' : 'fa-cart-shopping'}"></i></div>
+                        <div class="icon-box ${isTransfer ? 'icon-transfer' : (isInc ? 'icon-income' : 'icon-expense')} me-3">
+                            <i class="fa-solid ${iconClass}"></i>
+                        </div>
                         <div class="flex-grow-1 overflow-hidden">
                             <h6 class="mb-0 fw-bold text-truncate">${tx.category}</h6>
                             <small class="text-muted text-truncate d-block">${accName} • ${dateStr}</small>
                         </div>
                         <div class="text-end flex-shrink-0 ms-2">
-                            <h6 class="mb-0 fw-bold ${isInc ? 'text-success' : ''}">${isInc ? '+' : '-'}${Number(tx.amount).toLocaleString('ru-RU')} ₽</h6>
+                            <h6 class="mb-0 fw-bold ${colorClass}">${sign}${Number(tx.amount).toLocaleString('ru-RU')} ₽</h6>
                             ${tx.source_app === 'crm' ? '<span class="badge bg-info" style="font-size: 0.6rem;">CRM</span>' : ''}
                         </div>
                     </div>
@@ -412,315 +562,108 @@
         container.insertAdjacentHTML('beforeend', html);
     }
 
-   // === УПРАВЛЕНИЕ СКРОЛЛОМ И КНОПКОЙ "НАВЕРХ" ===
     window.addEventListener('scroll', () => {
         const scrollTopBtn = document.getElementById('scrollTopBtn');
-        const mainFabBtn = document.querySelector('.fab'); // Находим нашу кнопку "Плюс"
+        const mainFabBtn = document.querySelector('.fab'); 
         
-        // Логика переключения видимости кнопок
         if (window.scrollY > 300) {
-            scrollTopBtn.classList.add('visible');      // Показываем стрелку вверх
-            if(mainFabBtn) mainFabBtn.classList.add('fab-hidden'); // Прячем плюс
+            if(scrollTopBtn) scrollTopBtn.classList.add('visible');      
+            if(mainFabBtn) mainFabBtn.classList.add('fab-hidden'); 
         } else {
-            scrollTopBtn.classList.remove('visible');   // Прячем стрелку вверх
-            if(mainFabBtn) mainFabBtn.classList.remove('fab-hidden'); // Показываем плюс
+            if(scrollTopBtn) scrollTopBtn.classList.remove('visible');   
+            if(mainFabBtn) mainFabBtn.classList.remove('fab-hidden'); 
         }
 
-        // Логика бесконечного скролла (оставьте как было)
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
-            if (!document.getElementById('mainScreen').classList.contains('d-none')) {
-                loadTransactions(false);
-            } else if (!document.getElementById('statsScreen').classList.contains('d-none')) {
-                loadStatsTransactions(false);
-            }
-        }
+        if (document.getElementById('mainScreen').classList.contains('d-none')) return;
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) loadTransactions(false);
     });
-
-    function scrollToTop() {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // === АНАЛИТИКА ===
-    function openStatsScreen() {
-        document.getElementById('mainScreen').classList.add('d-none');
-        document.getElementById('statsScreen').classList.remove('d-none');
-        
-        const yearSelect = document.getElementById('statsYear');
-        if (yearSelect.options.length === 0) {
-            const currentYear = new Date().getFullYear();
-            for (let y = currentYear; y >= 2023; y--) yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
-        }
-        document.getElementById('statsMonth').value = new Date().getMonth();
-
-        window.scrollTo(0, 0);
-        history.pushState({ page: 'stats' }, "Stats", "#stats");
-        triggerCalculateStats();
-    }
-
-    function closeStatsScreen() { history.back(); }
-
-    function togglePeriodSelector() {
-        const period = document.getElementById('statsPeriod').value;
-        const customBox = document.getElementById('customMonthSelector');
-        if (period === 'custom') customBox.classList.remove('d-none');
-        else customBox.classList.add('d-none');
-        triggerCalculateStats();
-    }
-
-    function getStatsDateRange() {
-        const period = document.getElementById('statsPeriod').value;
-        const now = new Date();
-        let startTime = 0, endTime = 4102444800000;
-        let showLineChart = true;
-        let chartType = 'daily'; 
-
-        if (period === 'today') {
-            startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-            showLineChart = false;
-        } else if (period === '24h') {
-            startTime = now.getTime() - (24 * 60 * 60 * 1000);
-            showLineChart = false;
-        } else if (period === 'week') {
-            const day = now.getDay() || 7;
-            startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1).getTime();
-            chartType = 'daily';
-        } else if (period === 'month') {
-            startTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-            chartType = 'daily';
-        } else if (period === 'lastMonth') {
-            startTime = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
-            endTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-            chartType = 'daily';
-        } else if (period === 'year') {
-            startTime = new Date(now.getFullYear(), 0, 1).getTime();
-            chartType = 'monthly';
-        } else if (period === 'custom') {
-            const selectedMonth = parseInt(document.getElementById('statsMonth').value);
-            const selectedYear = parseInt(document.getElementById('statsYear').value);
-            startTime = new Date(selectedYear, selectedMonth, 1).getTime();
-            endTime = new Date(selectedYear, selectedMonth + 1, 1).getTime();
-            chartType = 'daily';
-        } else if (period === 'all') {
-            chartType = 'monthly';
-        }
-        return { startTime, endTime, showLineChart, chartType };
-    }
-
-    function triggerCalculateStats() {
-        document.getElementById('loadingOverlay').classList.remove('d-none');
-        setTimeout(() => {
-            calculateStats();
-            document.getElementById('loadingOverlay').classList.add('d-none');
-        }, 50);
-    }
-
-    function calculateStats() {
-        const range = getStatsDateRange();
-        const sql = `SELECT * FROM transactions WHERE timestamp >= ${range.startTime} AND timestamp < ${range.endTime}`;
-        
-        let totalIncome = 0, totalExpense = 0;
-        let incomeCats = {}, expenseCats = {};
-        let crmGross = 0, crmParts = 0;
-        let chartDataMap = {}; 
-
-        try {
-            const rows = JSON.parse(window.Android.querySql(DB_NAME, sql));
-            
-            rows.forEach((r) => {
-                const amt = parseFloat(r.amount);
-                
-                let d = new Date(r.timestamp);
-                let key = range.chartType === 'daily' 
-                    ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
-                    : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-                
-                if (!chartDataMap[key]) chartDataMap[key] = { period: key, rawIncome: 0, rawExpense: 0, crmGross: 0, crmParts: 0 };
-
-                if (r.source_app === 'crm') {
-                    if (r.type === 'income') { crmGross += amt; chartDataMap[key].crmGross += amt; }
-                    if (r.type === 'expense' && r.category === 'Бизнес (Запчасти)') { crmParts += amt; chartDataMap[key].crmParts += amt; }
-                } else {
-                    if (r.type === 'income') {
-                        totalIncome += amt;
-                        incomeCats[r.category] = (incomeCats[r.category] || 0) + amt;
-                        chartDataMap[key].rawIncome += amt;
-                    } else {
-                        totalExpense += amt;
-                        expenseCats[r.category] = (expenseCats[r.category] || 0) + amt;
-                        chartDataMap[key].rawExpense += amt;
-                    }
-                }
-            });
-
-            const crmNet = crmGross - crmParts;
-            if (crmNet > 0) {
-                totalIncome += crmNet;
-                incomeCats['Услуги ремонта (Чистыми)'] = (incomeCats['Услуги ремонта (Чистыми)'] || 0) + crmNet;
-            } else if (crmNet < 0) {
-                totalExpense += Math.abs(crmNet);
-                expenseCats['Убыток по ремонтам'] = (expenseCats['Убыток по ремонтам'] || 0) + Math.abs(crmNet);
-            }
-
-            document.getElementById('statIncome').innerText = Number(totalIncome).toLocaleString('ru-RU') + ' ₽';
-            document.getElementById('statExpense').innerText = Number(totalExpense).toLocaleString('ru-RU') + ' ₽';
-            const delta = totalIncome - totalExpense;
-            const elDelta = document.getElementById('statDelta');
-            elDelta.innerText = (delta > 0 ? '+' : '') + Number(delta).toLocaleString('ru-RU') + ' ₽';
-            elDelta.className = delta >= 0 ? "fs-4 fw-bold text-success" : "fs-4 fw-bold text-danger";
-
-            const chartContainerNode = document.getElementById('financeChartContainer');
-            if (!range.showLineChart || Object.keys(chartDataMap).length === 0) {
-                chartContainerNode.classList.add('d-none');
-            } else {
-                chartContainerNode.classList.remove('d-none');
-                let chartArray = [];
-                Object.keys(chartDataMap).sort().forEach(key => {
-                    let data = chartDataMap[key];
-                    let finalIncome = data.rawIncome;
-                    let finalExpense = data.rawExpense;
-                    let bucketCrmNet = data.crmGross - data.crmParts;
-                    if (bucketCrmNet > 0) finalIncome += bucketCrmNet;
-                    else if (bucketCrmNet < 0) finalExpense += Math.abs(bucketCrmNet);
-                    chartArray.push({ period: key, income: finalIncome, expense: finalExpense });
-                });
-
-                document.getElementById('chartTitle').innerText = range.chartType === 'daily' ? 'Динамика по дням' : 'Динамика по месяцам';
-                document.getElementById('financeChart').innerHTML = ''; 
-                
-                if (window.Morris) {
-                    new Morris.Line({
-                        element: 'financeChart',
-                        data: chartArray,
-                        xkey: 'period',
-                        ykeys: ['income', 'expense'],
-                        labels: ['Доход', 'Расход'],
-                        lineColors: ['#198754', '#dc3545'],
-                        hideHover: 'auto',
-                        resize: true,
-                        parseTime: false, 
-                        hoverCallback: function (index, options, content, row) {
-                            return `<div class="p-2 fw-bold bg-white shadow-sm border rounded">
-                                        <div class="mb-1 text-dark border-bottom pb-1">${row.period}</div>
-                                        <div style="color: #198754">Доход: ${Number(row.income).toLocaleString('ru-RU')} ₽</div>
-                                        <div style="color: #dc3545">Расход: ${Number(row.expense).toLocaleString('ru-RU')} ₽</div>
-                                    </div>`;
-                        }
-                    });
-                }
-            }
-
-            renderDonutWithLegend('incomeDonutChart', 'categoryStatsIncomeList', 'incomeStatsContainer', incomeCats);
-            renderDonutWithLegend('expenseDonutChart', 'categoryStatsExpenseList', 'expenseStatsContainer', expenseCats);
-
-            loadStatsTransactions(true);
-
-        } catch(e) { console.error("Ошибка аналитики: ", e); }
-    }
-
-    function renderDonutWithLegend(donutId, legendId, containerId, catsObj) {
-        const containerNode = document.getElementById(containerId);
-        const donutNode = document.getElementById(donutId);
-        const legendNode = document.getElementById(legendId);
-
-        donutNode.innerHTML = '';
-        legendNode.innerHTML = '';
-
-        const keys = Object.keys(catsObj).sort((a, b) => catsObj[b] - catsObj[a]);
-
-        if (keys.length === 0) {
-            containerNode.classList.add('d-none');
-            return;
-        }
-        containerNode.classList.remove('d-none');
-
-        const palette = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#8AC926', '#1982C4', '#F15BB5', '#00BBF9', '#FEE440', '#00F5D4'];
-        let donutData = [];
-        let colors = [];
-        let legendHtml = '';
-
-        keys.forEach((cat, index) => {
-            const color = palette[index % palette.length];
-            const val = catsObj[cat];
-            donutData.push({ label: cat, value: val });
-            colors.push(color);
-            legendHtml += `
-                <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded-3 shadow-sm border-0">
-                    <div class="d-flex align-items-center overflow-hidden pe-2">
-                        <div style="width: 14px; height: 14px; background-color: ${color}; border-radius: 50%; flex-shrink: 0;" class="me-3 shadow-sm"></div>
-                        <span class="fw-bold fs-6 text-truncate">${cat}</span>
-                    </div>
-                    <span class="fw-bold fs-6 flex-shrink-0">${Number(val).toLocaleString('ru-RU')} ₽</span>
-                </div>
-            `;
-        });
-
-        if (window.Morris) {
-            new Morris.Donut({
-                element: donutId,
-                data: donutData,
-                colors: colors,
-                resize: true,
-                formatter: function (y) { return Number(y).toLocaleString('ru-RU') + ' ₽'; }
-            });
-        }
-        legendNode.innerHTML = legendHtml;
-    }
-
-    // === ФОРМЫ ===
-    function showAddModal() { document.getElementById('txId').value = ''; document.getElementById('txModalTitle').innerText = 'Новая операция'; document.getElementById('txAmount').value = ''; document.getElementById('txNote').value = ''; document.getElementById('btnDeleteTx').classList.add('d-none'); updateCategorySelect(); addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal"); }
-    function openEditTxModal(txJson) { const tx = JSON.parse(txJson); if (tx.source_app === 'crm') { alert("Операция из CRM. Редактируйте сам заказ в приложении CRM."); return; } document.getElementById('txId').value = tx.id; document.getElementById('txModalTitle').innerText = 'Редактировать'; if (tx.type === 'income') document.getElementById('typeIncome').checked = true; else document.getElementById('typeExpense').checked = true; updateCategorySelect(); document.getElementById('txAmount').value = tx.amount; document.getElementById('txAccount').value = tx.account_id || 1; document.getElementById('txCategory').value = tx.category; document.getElementById('txNote').value = tx.note || ''; document.getElementById('btnDeleteTx').classList.remove('d-none'); addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal"); }
     
-    function saveTransaction() { 
-        const id = document.getElementById('txId').value; 
-        const type = document.querySelector('input[name="txType"]:checked').value; 
-        const amount = parseFloat(document.getElementById('txAmount').value); 
-        const category = document.getElementById('txCategory').value; 
-        const accId = parseInt(document.getElementById('txAccount').value) || 1; 
-        const note = document.getElementById('txNote').value.replace(/'/g, "''"); 
-        if (isNaN(amount) || amount <= 0) { alert("Сумма?"); return; } 
+    function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+    // === ФОРМЫ (Создание и Редактирование ТРАНЗАКЦИЙ) ===
+    function showAddModal() {
+        document.getElementById('txId').value = ''; document.getElementById('txModalTitle').innerText = 'Новая операция'; 
+        document.getElementById('txAmount').value = ''; document.getElementById('txNote').value = ''; 
+        document.getElementById('btnDeleteTx').classList.add('d-none');
+        updateCategorySelect(); addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal");
+    }
+
+    function openEditTxModal(txJson) {
+        const tx = JSON.parse(txJson);
+        if (tx.source_app === 'crm') { alert("Эта операция из CRM. Редактируйте сам заказ."); return; }
         
-        if (id) { window.Android.executeSql(DB_NAME, `UPDATE transactions SET type='${type}', amount=${amount}, category='${category}', note='${note}', account_id=${accId} WHERE id=${id}`); } 
-        else { window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('${type}', ${amount}, '${category}', '${note}', ${Date.now()}, 'finance', ${accId})`); } 
+        document.getElementById('txId').value = tx.id;
+        document.getElementById('txModalTitle').innerText = 'Редактировать';
+        if (tx.type === 'income') document.getElementById('typeIncome').checked = true;
+        else document.getElementById('typeExpense').checked = true;
         
-        addModal.hide(); 
-        updateBalancesFast(); 
+        updateCategorySelect();
+        document.getElementById('txAmount').value = tx.amount;
+        document.getElementById('txAccount').value = tx.account_id || 1;
+        document.getElementById('txCategory').value = tx.category;
+        document.getElementById('txNote').value = tx.note || '';
+        document.getElementById('btnDeleteTx').classList.remove('d-none');
         
-        // Обновляем списки в зависимости от того, какой экран открыт
-        if (!document.getElementById('mainScreen').classList.contains('d-none')) {
-            loadTransactions(true); 
-        } else if (!document.getElementById('statsScreen').classList.contains('d-none')) {
-            triggerCalculateStats();
+        addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal");
+    }
+
+    function saveTransaction() {
+        const id = document.getElementById('txId').value;
+        const type = document.querySelector('input[name="txType"]:checked').value;
+        const amount = parseFloat(document.getElementById('txAmount').value);
+        const category = document.getElementById('txCategory').value;
+        const accId = parseInt(document.getElementById('txAccount').value) || 1;
+        const note = document.getElementById('txNote').value.replace(/'/g, "''");
+        
+        if (isNaN(amount) || amount <= 0) { alert("Сумма?"); return; }
+
+        if (id) window.Android.executeSql(DB_NAME, `UPDATE transactions SET type='${type}', amount=${amount}, category='${category}', note='${note}', account_id=${accId} WHERE id=${id}`);
+        else window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('${type}', ${amount}, '${category}', '${note}', ${Date.now()}, 'finance', ${accId})`);
+        
+        addModal.hide(); updateBalancesFast(); loadTransactions(true);
+    }
+
+    function deleteTx() {
+        const id = document.getElementById('txId').value;
+        if (confirm("Удалить операцию?")) {
+            window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`);
+            addModal.hide(); updateBalancesFast(); loadTransactions(true);
         }
+    }
+
+    function updateCategorySelect() {
+        const type = document.querySelector('input[name="txType"]:checked').value;
+        const select = document.getElementById('txCategory');
+        select.innerHTML = '';
+        allCategories.filter(c => c.type === type).forEach(c => select.innerHTML += `<option value="${c.name}">${c.name}</option>`);
+    }
+    function updateAccountSelect() {
+        const select = document.getElementById('txAccount');
+        select.innerHTML = '';
+        allAccounts.forEach(a => select.innerHTML += `<option value="${a.id}">${a.name}</option>`);
     }
     
-    function deleteTx() { 
-        const id = document.getElementById('txId').value; 
-        if (confirm("Удалить операцию?")) { 
-            window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`); 
-            addModal.hide(); 
-            updateBalancesFast(); 
-            if (!document.getElementById('mainScreen').classList.contains('d-none')) {
-                loadTransactions(true); 
-            } else if (!document.getElementById('statsScreen').classList.contains('d-none')) {
-                triggerCalculateStats();
-            }
-        } 
+    function showCategoryModal() {
+        document.getElementById('newCategoryName').value = '';
+        document.getElementById('categoryModalTitle').innerText = document.querySelector('input[name="txType"]:checked').value === 'expense' ? 'Новая категория расхода' : 'Новая категория дохода';
+        addModal.hide(); setTimeout(() => categoryModal.show(), 400); 
+    }
+    function saveNewCategory() {
+        const name = document.getElementById('newCategoryName').value.trim().replace(/'/g, "''");
+        if (!name) return;
+        const type = document.querySelector('input[name="txType"]:checked').value;
+        window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ('${name}', '${type}')`);
+        categoryModal.hide();
+        allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC"));
+        updateCategorySelect();
+        setTimeout(() => { addModal.show(); document.getElementById('txCategory').value = name; }, 400);
     }
 
-    function updateCategorySelect() { const type = document.querySelector('input[name="txType"]:checked').value; const select = document.getElementById('txCategory'); select.innerHTML = ''; allCategories.filter(c => c.type === type).forEach(c => select.innerHTML += `<option value="${c.name}">${c.name}</option>`); }
-    function updateAccountSelect() { const select = document.getElementById('txAccount'); select.innerHTML = ''; allAccounts.forEach(a => select.innerHTML += `<option value="${a.id}">${a.name}</option>`); }
-    function showAddAccountModal() { document.getElementById('newAccName').value = ''; accModal.show(); }
-    function saveNewAccount() { const name = document.getElementById('newAccName').value.trim().replace(/'/g, "''"); const type = document.getElementById('newAccType').value; if (!name) return; window.Android.executeSql(DB_NAME, `INSERT INTO accounts (name, type) VALUES ('${name}', '${type}')`); accModal.hide(); allAccounts = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM accounts ORDER BY id ASC")); updateAccountSelect(); updateBalancesFast(); loadTransactions(true); }
-    function showCategoryModal() { document.getElementById('newCategoryName').value = ''; document.getElementById('categoryModalTitle').innerText = document.querySelector('input[name="txType"]:checked').value === 'expense' ? 'Новая категория расхода' : 'Новая категория дохода'; addModal.hide(); setTimeout(() => categoryModal.show(), 400); }
-    function saveNewCategory() { const name = document.getElementById('newCategoryName').value.trim().replace(/'/g, "''"); if (!name) return; const type = document.querySelector('input[name="txType"]:checked').value; window.Android.executeSql(DB_NAME, `INSERT INTO categories (name, type) VALUES ('${name}', '${type}')`); categoryModal.hide(); allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC")); updateCategorySelect(); setTimeout(() => { addModal.show(); document.getElementById('txCategory').value = name; }, 400); }
-    
-    // === ТЕСТЫ ===
+    // === ТЕСТИРОВАНИЕ ПРОИЗВОДИТЕЛЬНОСТИ ===
     function generateTestTx() {
         if (!confirm("Добавить 10 000 случайных операций?")) return;
-        const btn = document.getElementById('btnGenerate');
-        btn.disabled = true; btn.innerText = "Идет генерация...";
-        const catsInc = allCategories.filter(c => c.type === 'income');
-        const catsExp = allCategories.filter(c => c.type === 'expense');
+        const btn = document.getElementById('btnGenerate'); btn.disabled = true; btn.innerText = "Идет генерация...";
+        const catsInc = allCategories.filter(c => c.type === 'income'); const catsExp = allCategories.filter(c => c.type === 'expense');
         let totalInserted = 0;
         function insertBatch() {
             let sql = "INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ";
@@ -738,27 +681,16 @@
             window.Android.executeSql(DB_NAME, sql + values.join(", "));
             totalInserted += 500;
             if (totalInserted < 10000) { btn.innerText = `Добавлено: ${totalInserted} / 10000`; setTimeout(insertBatch, 20); } 
-            else { btn.disabled = false; btn.innerText = "Сгенерировать 10 000 записей"; updateBalancesFast(); loadTransactions(true); if (!document.getElementById('statsScreen').classList.contains('d-none')) triggerCalculateStats(); alert("Успешно добавлено!"); }
+            else { btn.disabled = false; btn.innerText = "Сгенерировать 10 000 записей"; updateBalancesFast(); loadTransactions(true); alert("Успешно добавлено!"); }
         }
         insertBatch();
     }
 
-function clearFinanceDb() {
-    if (!confirm("Удалить только тестовые финансовые операции? Ваши реальные записи останутся.")) return;
-    
-    // Удаляем ТОЛЬКО те транзакции, у которых заметка 'Тест'
-    window.Android.executeSql(DB_NAME, "DELETE FROM transactions WHERE source_app='finance' AND note='Тест'");
-    
-    updateBalancesFast(); 
-    loadTransactions(true); 
-    if (!document.getElementById('statsScreen').classList.contains('d-none')) {
-        triggerCalculateStats();
+    function clearFinanceDb() {
+        if (!confirm("ВНИМАНИЕ! Удалить все тестовые операции?")) return;
+        window.Android.executeSql(DB_NAME, "DELETE FROM transactions WHERE source_app='finance' AND note='Тест'");
+        updateBalancesFast(); loadTransactions(true); alert("Очищено!");
     }
-    
-    alert("Тестовые операции успешно удалены!");
-}
-
-    window.addEventListener('DOMContentLoaded', initDb);
 </script>
 </body>
 </html>
