@@ -74,11 +74,16 @@
 <div id="mainScreen">
     <div class="container py-3">
         <div class="d-flex justify-content-between align-items-center mb-3 px-1">
-            <h5 class="fw-bold mb-0">Мои счета</h5>
-            <button class="btn btn-light rounded-circle shadow-sm text-primary" style="width: 40px; height: 40px;" onclick="openStatsScreen()">
-                <i class="fa-solid fa-chart-pie"></i>
-            </button>
-        </div>
+    <h5 class="fw-bold mb-0">Мои счета</h5>
+    <div>
+        <button class="btn btn-light rounded-circle shadow-sm text-primary me-2" style="width: 40px; height: 40px;" onclick="openStatsScreen()">
+            <i class="fa-solid fa-chart-pie"></i>
+        </button>
+        <button class="btn btn-light rounded-circle shadow-sm text-secondary" style="width: 40px; height: 40px;" onclick="window.location.href='settings.htm'">
+            <i class="fa-solid fa-gear"></i>
+        </button>
+    </div>
+</div>
 
         <div class="px-1 mb-2">
             <span class="text-muted small">Свободные средства: </span>
