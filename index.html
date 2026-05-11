@@ -584,7 +584,7 @@ function smartAutoBackup(appName) {
         const isTarget = document.getElementById('editAccIsTarget').checked ? 1 : 0;
         if (!name) return;
         window.Android.executeSql(DB_NAME, `UPDATE accounts SET name='${name}', is_target=${isTarget}, color='${color}', icon='${icon}' WHERE id=${currentEditAccountId}`);
-        editAccModal.hide();
+        smartAutoBackup('finance');editAccModal.hide();
         updateBalancesFast();
         loadTransactions(true); 
     }
@@ -633,7 +633,7 @@ function smartAutoBackup(appName) {
         window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('expense', ${amount}, 'Перевод', 'На счет: ${toAcc.name.replace(/'/g, "''")}', ${ts}, 'finance', ${fromId})`);
         window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('income', ${amount}, 'Перевод', 'Со счета: ${fromAcc.name.replace(/'/g, "''")}', ${ts}, 'finance', ${toId})`);
         
-        transferModal.hide();
+        smartAutoBackup('finance');transferModal.hide();
         updateBalancesFast();
         loadTransactions(true);
     }
@@ -663,7 +663,7 @@ function smartAutoBackup(appName) {
 
         window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('${type}', ${amount}, 'Корректировка', 'Синхронизация баланса', ${ts}, 'finance', ${currentEditAccountId})`);
         
-        adjustModal.hide();
+        smartAutoBackup('finance');adjustModal.hide();
         updateBalancesFast();
         loadTransactions(true);
     }
@@ -804,7 +804,7 @@ function smartAutoBackup(appName) {
         const id = document.getElementById('txId').value;
         if (confirm("Удалить операцию?")) {
             window.Android.executeSql(DB_NAME, `DELETE FROM transactions WHERE id=${id}`);
-            addModal.hide(); updateBalancesFast(); loadTransactions(true);
+            smartAutoBackup('finance');addModal.hide(); updateBalancesFast(); loadTransactions(true);
         }
     }
 
