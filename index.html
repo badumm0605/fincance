@@ -743,11 +743,20 @@
         insertBatch();
     }
 
-    function clearFinanceDb() {
-        if (!confirm("ВНИМАНИЕ! Удалить все операции (кроме CRM)?")) return;
-        window.Android.executeSql(DB_NAME, "DELETE FROM transactions WHERE source_app='finance'");
-        updateBalancesFast(); loadTransactions(true); if (!document.getElementById('statsScreen').classList.contains('d-none')) triggerCalculateStats(); alert("Очищено!");
+function clearFinanceDb() {
+    if (!confirm("Удалить только тестовые финансовые операции? Ваши реальные записи останутся.")) return;
+    
+    // Удаляем ТОЛЬКО те транзакции, у которых заметка 'Тест'
+    window.Android.executeSql(DB_NAME, "DELETE FROM transactions WHERE source_app='finance' AND note='Тест'");
+    
+    updateBalancesFast(); 
+    loadTransactions(true); 
+    if (!document.getElementById('statsScreen').classList.contains('d-none')) {
+        triggerCalculateStats();
     }
+    
+    alert("Тестовые операции успешно удалены!");
+}
 
     window.addEventListener('DOMContentLoaded', initDb);
 </script>
