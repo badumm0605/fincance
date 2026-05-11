@@ -185,7 +185,31 @@
             <div class="modal-header border-0 pb-0"><h6 class="modal-title fw-bold">Добавить счет</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <div class="mb-3"><label class="form-label text-muted small mb-1">Название (Авито, Сбер...)</label><input type="text" id="newAccName" class="form-control" placeholder="Моя карта"></div>
-                <div class="mb-2"><label class="form-label text-muted small mb-1">Тип оформления</label><select id="newAccType" class="form-select"><option value="card">💳 Дебетовая карта (Синий)</option><option value="cash">💵 Наличные (Зеленый)</option><option value="credit">🏦 Кредитка / Долг (Красный)</option></select></div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label text-muted small mb-1">Цвет</label>
+                        <select id="newAccColor" class="form-select fw-bold">
+                            <option value="linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)">🔵 Синий (ВТБ, Авито)</option>
+                            <option value="linear-gradient(135deg, #198754 0%, #146c43 100%)">🟢 Зеленый (Сбер)</option>
+                            <option value="linear-gradient(135deg, #dc3545 0%, #b02a37 100%)">🔴 Красный (Альфа)</option>
+                            <option value="linear-gradient(135deg, #ffc107 0%, #d39e00 100%)">🟡 Желтый (Тиньк, Яндекс)</option>
+                            <option value="linear-gradient(135deg, #212529 0%, #1a1e21 100%)">⚫ Черный (Премиум)</option>
+                            <option value="linear-gradient(135deg, #6f42c1 0%, #59359a 100%)">🟣 Фиолетовый</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small mb-1">Иконка</label>
+                        <select id="newAccIcon" class="form-select fw-bold">
+                            <option value="fa-wallet">💳 Кошелек</option>
+                            <option value="fa-credit-card">💳 Карта</option>
+                            <option value="fa-building-columns">🏦 Банк</option>
+                            <option value="fa-bullseye">🎯 Цель (Реклама)</option>
+                            <option value="fa-mobile-screen">📱 Телефон</option>
+                            <option value="fa-briefcase">💼 Бизнес</option>
+                            <option value="fa-piggy-bank">🐷 Копилка</option>
+                        </select>
+                    </div>
+                </div>
                 
                 <div class="form-check form-switch mb-4 p-3 bg-light rounded border">
                     <input class="form-check-input ms-0 me-2" type="checkbox" id="newAccIsTarget">
@@ -223,7 +247,31 @@
                 </div>
 
                 <div class="mb-3"><label class="form-label text-muted small mb-1">Название счета</label><input type="text" id="editAccName" class="form-control fw-bold"></div>
-                <div class="mb-2"><label class="form-label text-muted small mb-1">Оформление / Тип</label><select id="editAccType" class="form-select"><option value="card">💳 Дебетовая карта (Синий)</option><option value="cash">💵 Наличные (Зеленый)</option><option value="credit">🏦 Кредитка / Долг (Красный)</option></select></div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label text-muted small mb-1">Цвет</label>
+                        <select id="editAccColor" class="form-select fw-bold">
+                            <option value="linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)">🔵 Синий (ВТБ, Авито)</option>
+                            <option value="linear-gradient(135deg, #198754 0%, #146c43 100%)">🟢 Зеленый (Сбер)</option>
+                            <option value="linear-gradient(135deg, #dc3545 0%, #b02a37 100%)">🔴 Красный (Альфа)</option>
+                            <option value="linear-gradient(135deg, #ffc107 0%, #d39e00 100%)">🟡 Желтый (Тиньк, Яндекс)</option>
+                            <option value="linear-gradient(135deg, #212529 0%, #1a1e21 100%)">⚫ Черный (Премиум)</option>
+                            <option value="linear-gradient(135deg, #6f42c1 0%, #59359a 100%)">🟣 Фиолетовый</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small mb-1">Иконка</label>
+                        <select id="editAccIcon" class="form-select fw-bold">
+                            <option value="fa-wallet">💳 Кошелек</option>
+                            <option value="fa-credit-card">💳 Карта</option>
+                            <option value="fa-building-columns">🏦 Банк</option>
+                            <option value="fa-bullseye">🎯 Цель (Реклама)</option>
+                            <option value="fa-mobile-screen">📱 Телефон</option>
+                            <option value="fa-briefcase">💼 Бизнес</option>
+                            <option value="fa-piggy-bank">🐷 Копилка</option>
+                        </select>
+                    </div>
+                </div>
                 
                 <div class="form-check form-switch mb-4 p-3 bg-light rounded border">
                     <input class="form-check-input ms-0 me-2" type="checkbox" id="editAccIsTarget">
@@ -369,7 +417,8 @@
         
         try { window.Android.executeSql(DB_NAME, `ALTER TABLE transactions ADD COLUMN account_id INTEGER DEFAULT 1`); } catch(e) {}
         try { window.Android.executeSql(DB_NAME, `ALTER TABLE accounts ADD COLUMN is_target INTEGER DEFAULT 0`); } catch(e) {}
-
+        try { window.Android.executeSql(DB_NAME, `ALTER TABLE accounts ADD COLUMN color TEXT DEFAULT 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)'`); } catch(e) {}
+        try { window.Android.executeSql(DB_NAME, `ALTER TABLE accounts ADD COLUMN icon TEXT DEFAULT 'fa-wallet'`); } catch(e) {}
         seedDataIfEmpty();
         allCategories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY name ASC"));
         
@@ -414,18 +463,30 @@
 
         const accContainer = document.getElementById('accountsList');
         accContainer.innerHTML = '';
-        const icons = { 'cash': 'fa-wallet', 'card': 'fa-credit-card', 'credit': 'fa-building-columns' };
 
+        // В функции updateBalancesFast() ЗАМЕНИТЕ цикл allAccounts.forEach на этот:
         allAccounts.forEach(acc => {
-            if (!acc.is_target) { totalFree += balances[acc.id]; }
+            if (!acc.is_target) {
+                totalFree += balances[acc.id];
+            }
 
             const targetBadge = acc.is_target ? '<span class="badge bg-light text-dark position-absolute top-0 end-0 m-2" style="font-size: 0.6rem; opacity: 0.8;"><i class="fa-solid fa-bullseye text-danger me-1"></i>Целевой</span>' : '';
+            
+            // Если у счета еще нет цвета/иконки (старые записи), даем им дефолт
+            let bgColor = acc.color || 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)';
+            let iconClass = acc.icon || 'fa-wallet';
+            
+            // Обратная совместимость: если тип был cash/credit из старой версии, красим принудительно, если у них нет колонки color
+            if (!acc.color) {
+                if (acc.type === 'cash') bgColor = 'linear-gradient(135deg, #198754 0%, #146c43 100%)';
+                if (acc.type === 'credit') { bgColor = 'linear-gradient(135deg, #dc3545 0%, #b02a37 100%)'; iconClass = 'fa-building-columns'; }
+            }
 
             accContainer.innerHTML += `
-                <div class="card account-card shadow-sm acc-${acc.type}" onclick="openEditAccountModal(${acc.id}, ${balances[acc.id]})">
+                <div class="card account-card shadow-sm" style="background: ${bgColor};" onclick="openEditAccountModal(${acc.id}, ${balances[acc.id]})">
                     ${targetBadge}
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <i class="fa-solid ${icons[acc.type] || 'fa-wallet'} fs-5 opacity-75"></i>
+                        <i class="fa-solid ${iconClass} fs-5 opacity-75"></i>
                     </div>
                     <small class="opacity-75 text-truncate d-block" style="max-width: 100px;">${acc.name}</small>
                     <h5 class="fw-bold mb-0 mt-1">${Number(balances[acc.id]).toLocaleString('ru-RU')} ₽</h5>
@@ -440,10 +501,11 @@
     
     function saveNewAccount() {
         const name = document.getElementById('newAccName').value.trim().replace(/'/g, "''");
-        const type = document.getElementById('newAccType').value;
+        const color = document.getElementById('newAccColor').value;
+        const icon = document.getElementById('newAccIcon').value;
         const isTarget = document.getElementById('newAccIsTarget').checked ? 1 : 0;
         if (!name) return;
-        window.Android.executeSql(DB_NAME, `INSERT INTO accounts (name, type, is_target) VALUES ('${name}', '${type}', ${isTarget})`);
+        window.Android.executeSql(DB_NAME, `INSERT INTO accounts (name, type, is_target, color, icon) VALUES ('${name}', 'custom', ${isTarget}, '${color}', '${icon}')`);
         accModal.hide();
         updateBalancesFast();
     }
@@ -455,7 +517,9 @@
         currentAccountBalance = bal;
         
         document.getElementById('editAccName').value = acc.name;
-        document.getElementById('editAccType').value = acc.type;
+        // Устанавливаем цвет и иконку (если это старый счет без них - ставим дефолтные)
+        document.getElementById('editAccColor').value = acc.color || 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)';
+        document.getElementById('editAccIcon').value = acc.icon || 'fa-wallet';
         document.getElementById('editAccIsTarget').checked = (acc.is_target == 1);
         document.getElementById('editAccBalance').innerText = Number(bal).toLocaleString('ru-RU') + ' ₽';
         
@@ -465,10 +529,11 @@
 
     function saveEditedAccount() {
         const name = document.getElementById('editAccName').value.trim().replace(/'/g, "''");
-        const type = document.getElementById('editAccType').value;
+        const color = document.getElementById('editAccColor').value;
+        const icon = document.getElementById('editAccIcon').value;
         const isTarget = document.getElementById('editAccIsTarget').checked ? 1 : 0;
         if (!name) return;
-        window.Android.executeSql(DB_NAME, `UPDATE accounts SET name='${name}', type='${type}', is_target=${isTarget} WHERE id=${currentEditAccountId}`);
+        window.Android.executeSql(DB_NAME, `UPDATE accounts SET name='${name}', is_target=${isTarget}, color='${color}', icon='${icon}' WHERE id=${currentEditAccountId}`);
         editAccModal.hide();
         updateBalancesFast();
         loadTransactions(true); 
