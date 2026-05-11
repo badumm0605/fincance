@@ -172,6 +172,10 @@
                     <button class="btn btn-outline-primary shadow-sm" style="height: calc(1.5em + 1rem + 2px);" onclick="showCategoryModal()"><i class="fa-solid fa-folder-plus"></i></button>
                 </div>
                 <div class="mb-4"><label class="form-label text-muted small mb-1">Заметка</label><input type="text" id="txNote" class="form-control" placeholder="Комментарий..."></div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">Дата и время операции</label>
+                    <input type="datetime-local" id="txDate" class="form-control fw-bold text-primary">
+                </div>
                 <button class="btn btn-primary w-100 py-3 rounded-3 fw-bold mb-2" onclick="saveTransaction()">Сохранить</button>
                 <button class="btn btn-outline-danger w-100 py-2 rounded-3 d-none" id="btnDeleteTx" onclick="deleteTx()">Удалить операцию</button>
             </div>
@@ -710,10 +714,19 @@
 
     // === ТРАНЗАКЦИИ ===
     function showAddModal() {
-        document.getElementById('txId').value = ''; document.getElementById('txModalTitle').innerText = 'Новая операция'; 
-        document.getElementById('txAmount').value = ''; document.getElementById('txNote').value = ''; 
+        document.getElementById('txId').value = ''; 
+        document.getElementById('txModalTitle').innerText = 'Новая операция'; 
+        document.getElementById('txAmount').value = ''; 
+        document.getElementById('txNote').value = ''; 
+        
+        // Подставляем текущее время с учетом часового пояса
+        const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+        document.getElementById('txDate').value = new Date(Date.now() - tzoffset).toISOString().slice(0, 16);
+
         document.getElementById('btnDeleteTx').classList.add('d-none');
-        updateCategorySelect(); addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal");
+        updateCategorySelect(); 
+        addModal.show(); 
+        history.pushState({ page: 'modal' }, "Modal", "#modal");
     }
 
     function openEditTxModal(txJson) {
@@ -730,12 +743,19 @@
         document.getElementById('txAccount').value = tx.account_id || 1;
         document.getElementById('txCategory').value = tx.category;
         document.getElementById('txNote').value = tx.note || '';
+
+        // Восстанавливаем оригинальное время транзакции
+        const d = new Date(tx.timestamp);
+        const tzoffset = d.getTimezoneOffset() * 60000;
+        document.getElementById('txDate').value = new Date(d - tzoffset).toISOString().slice(0, 16);
+
         document.getElementById('btnDeleteTx').classList.remove('d-none');
         
-        addModal.show(); history.pushState({ page: 'modal' }, "Modal", "#modal");
+        addModal.show(); 
+        history.pushState({ page: 'modal' }, "Modal", "#modal");
     }
 
-    function saveTransaction() {
+   function saveTransaction() {
         const id = document.getElementById('txId').value;
         const type = document.querySelector('input[name="txType"]:checked').value;
         const amount = parseFloat(document.getElementById('txAmount').value);
@@ -743,12 +763,21 @@
         const accId = parseInt(document.getElementById('txAccount').value) || 1;
         const note = document.getElementById('txNote').value.replace(/'/g, "''");
         
+        // Получаем время из календаря
+        const dateVal = document.getElementById('txDate').value;
+        const ts = dateVal ? new Date(dateVal).getTime() : Date.now();
+        
         if (isNaN(amount) || amount <= 0) { alert("Сумма?"); return; }
 
-        if (id) window.Android.executeSql(DB_NAME, `UPDATE transactions SET type='${type}', amount=${amount}, category='${category}', note='${note}', account_id=${accId} WHERE id=${id}`);
-        else window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('${type}', ${amount}, '${category}', '${note}', ${Date.now()}, 'finance', ${accId})`);
+        if (id) {
+            window.Android.executeSql(DB_NAME, `UPDATE transactions SET type='${type}', amount=${amount}, category='${category}', note='${note}', account_id=${accId}, timestamp=${ts} WHERE id=${id}`);
+        } else {
+            window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('${type}', ${amount}, '${category}', '${note}', ${ts}, 'finance', ${accId})`);
+        }
         
-        addModal.hide(); updateBalancesFast(); loadTransactions(true);
+        addModal.hide(); 
+        updateBalancesFast(); 
+        loadTransactions(true);
     }
 
     function deleteTx() {
