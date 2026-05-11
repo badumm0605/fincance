@@ -522,13 +522,13 @@
             const newTx = JSON.parse(window.Android.querySql(DB_NAME, sql));
             if (newTx.length < LOAD_LIMIT) hasMoreData = false;
             currentOffset += newTx.length;
-            renderTxChunk(newTx, reset);
+            renderTxChunk(newTx, 'transactionsList', reset);
         } catch (e) { console.error(e); }
         isLoading = false;
     }
 
-    function renderTxChunk(txChunk, isReset) {
-        const container = document.getElementById('transactionsList');
+    function renderTxChunk(txChunk, containerId, isReset) {
+        const container = document.getElementById(containerId);
         if (isReset && txChunk.length === 0) { container.innerHTML = '<p class="text-center text-muted mt-4">Нет операций</p>'; return; }
 
         let html = '';
@@ -730,22 +730,10 @@
     }
 
     function calculateStats() {
-        const period = document.getElementById('statsPeriod').value;
-        const now = new Date();
-        let startTime = 0, endTime = 4102444800000;
-        let showChart = true; let chartType = 'daily';
-
-        if (period === 'today') { startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(); showChart = false; } 
-        else if (period === '24h') { startTime = now.getTime() - (24 * 60 * 60 * 1000); showChart = false; } 
-        else if (period === 'week') { const day = now.getDay() || 7; startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1).getTime(); } 
-        else if (period === 'month') { startTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime(); } 
-        else if (period === 'lastMonth') { startTime = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime(); endTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime(); } 
-        else if (period === 'year') { startTime = new Date(now.getFullYear(), 0, 1).getTime(); chartType = 'monthly'; } 
-        else if (period === 'custom') { const sm = parseInt(document.getElementById('statsMonth').value); const sy = parseInt(document.getElementById('statsYear').value); startTime = new Date(sy, sm, 1).getTime(); endTime = new Date(sy, sm + 1, 1).getTime(); } 
-        else if (period === 'all') { chartType = 'monthly'; }
+        const range = getStatsDateRange(); // Используем наш хелпер дат!
 
         // Исключаем Переводы и Корректировки из чистой аналитики
-        const sql = `SELECT * FROM transactions WHERE timestamp >= ${startTime} AND timestamp < ${endTime} AND category NOT IN ('Перевод', 'Корректировка') ORDER BY timestamp ASC`;
+        const sql = `SELECT * FROM transactions WHERE timestamp >= ${range.startTime} AND timestamp < ${range.endTime} AND category NOT IN ('Перевод', 'Корректировка') ORDER BY timestamp ASC`;
         
         let totalIncome = 0; let totalExpense = 0;
         let incomeCats = {}; let expenseCats = {};
@@ -758,7 +746,7 @@
                 const amt = parseFloat(r.amount);
                 
                 let d = new Date(r.timestamp);
-                let key = chartType === 'daily' ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                let key = range.chartType === 'daily' ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
                 if (!chartDataMap[key]) chartDataMap[key] = { period: key, income: 0, expense: 0 };
 
                 if (r.type === 'income') {
@@ -783,12 +771,12 @@
             renderDonutChart('expenseDonut', expenseCats, ['#dc3545', '#ff6b6b', '#c82333', '#e4606d', '#bd2130']);
 
             const chartContainerNode = document.getElementById('financeChartContainer');
-            if (!showChart || Object.keys(chartDataMap).length === 0) {
+            if (!range.showLineChart || Object.keys(chartDataMap).length === 0) {
                 chartContainerNode.classList.add('d-none');
             } else {
                 chartContainerNode.classList.remove('d-none');
                 let chartArray = Object.values(chartDataMap);
-                document.getElementById('chartTitle').innerText = chartType === 'daily' ? 'Динамика по дням' : 'Динамика по месяцам';
+                document.getElementById('chartTitle').innerText = range.chartType === 'daily' ? 'Динамика по дням' : 'Динамика по месяцам';
                 document.getElementById('financeChart').innerHTML = ''; 
                 
                 if (window.Morris) {
@@ -799,28 +787,14 @@
                 }
             }
             
-            // Вывод списка транзакций в аналитике
-            const statsList = document.getElementById('statsTransactionsList');
-            statsList.innerHTML = '';
-            let htmlStatsList = '';
-            rows.slice(0, 100).forEach(tx => {
-                const isInc = tx.type === 'income';
-                const accName = (allAccounts.find(a => a.id === (tx.account_id || 1)) || {}).name || 'Счет удален';
-                const dateStr = new Date(tx.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-                const safeTx = JSON.stringify(tx).replace(/'/g, "&apos;").replace(/"/g, '&quot;');
-                htmlStatsList += `
-                    <div class="card transaction-card shadow-sm mb-1" onclick="openEditTxModal('${safeTx}')">
-                        <div class="card-body p-3 d-flex align-items-center">
-                            <div class="icon-box ${isInc ? 'icon-income' : 'icon-expense'} me-3"><i class="fa-solid ${isInc ? 'fa-arrow-down' : 'fa-cart-shopping'}"></i></div>
-                            <div class="flex-grow-1 overflow-hidden"><h6 class="mb-0 fw-bold text-truncate">${tx.category}</h6><small class="text-muted text-truncate d-block">${accName} • ${dateStr}</small></div>
-                            <div class="text-end flex-shrink-0 ms-2"><h6 class="mb-0 fw-bold ${isInc ? 'text-success' : ''}">${isInc ? '+' : '-'}${Number(tx.amount).toLocaleString('ru-RU')} ₽</h6></div>
-                        </div>
-                    </div>`;
-            });
-            if (rows.length === 0) htmlStatsList = '<p class="text-center text-muted mt-4">Нет операций</p>';
-            statsList.insertAdjacentHTML('beforeend', htmlStatsList);
+            // Вывод списка транзакций в аналитике (Ограничим до 100 для скорости)
+            // Важно: здесь мы берем ВСЕ транзакции, чтобы были видны переводы
+            const sqlAll = `SELECT * FROM transactions WHERE timestamp >= ${range.startTime} AND timestamp < ${range.endTime} ORDER BY timestamp DESC LIMIT 100`;
+            const rowsAll = JSON.parse(window.Android.querySql(DB_NAME, sqlAll));
+            document.getElementById('statsTransactionsList').innerHTML = '';
+            renderTxChunk(rowsAll, 'statsTransactionsList', true);
 
-        } catch(e) {}
+        } catch(e) { console.error("Ошибка аналитики Финансов:", e); }
     }
 
     function renderDonutChart(prefix, catsObj, colorArray) {
