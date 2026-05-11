@@ -794,7 +794,7 @@ function smartAutoBackup(appName) {
         } else {
             window.Android.executeSql(DB_NAME, `INSERT INTO transactions (type, amount, category, note, timestamp, source_app, account_id) VALUES ('${type}', ${amount}, '${category}', '${note}', ${ts}, 'finance', ${accId})`);
         }
-        
+        smartAutoBackup('finance');
         addModal.hide(); 
         updateBalancesFast(); 
         loadTransactions(true);
