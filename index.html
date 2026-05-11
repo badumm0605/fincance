@@ -392,6 +392,26 @@
 <script src="file:///android_asset/js/bootstrap.bundle.min.js"></script>
 
 <script>
+
+    // Глобальный таймер для умного бекапа
+let autoBackupTimeout = null;
+
+function smartAutoBackup(appName) {
+    // Если таймер уже запущен, сбрасываем его
+    if (autoBackupTimeout) {
+        clearTimeout(autoBackupTimeout);
+    }
+    
+    // Ждем 10 секунд после последнего действия
+    autoBackupTimeout = setTimeout(() => {
+        if (window.Android && window.Android.triggerAutoBackup) {
+            console.log(`Запуск теневого авто-бекапа для ${appName}...`);
+            window.Android.triggerAutoBackup(appName);
+        }
+    }, 10000); // 10 000 мс = 10 секунд
+}
+
+    
     const DB_NAME = "finance_bus.db";
     let allCategories = [];
     let allAccounts = [];
