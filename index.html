@@ -720,7 +720,83 @@
             triggerCalculateStats();
         }
     }
+// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ КАЛЕНДАРЯ ===
+    let rangeModal = null; let calCurrentDate = new Date(); let rangeStart = null; let rangeEnd = null; let dbMinTs = null; let dbMaxTs = null; let finalRangeStart = null; let finalRangeEnd = null;
 
+    function getStatsDateRange() {
+        const period = document.getElementById('statsPeriod').value;
+        const now = new Date();
+        let startTime = 0, endTime = 4102444800000;
+        let showLineChart = true; let chartType = 'daily'; 
+
+        if (period === 'today') { startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(); showLineChart = false; } 
+        else if (period === '24h') { startTime = now.getTime() - (24 * 60 * 60 * 1000); showLineChart = false; } 
+        else if (period === 'week') { const day = now.getDay() || 7; startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1).getTime(); } 
+        else if (period === 'month') { startTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime(); } 
+        else if (period === 'lastMonth') { startTime = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime(); endTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime(); } 
+        else if (period === 'year') { startTime = new Date(now.getFullYear(), 0, 1).getTime(); chartType = 'monthly'; } 
+        else if (period === 'custom') { const sm = parseInt(document.getElementById('statsMonth').value); const sy = parseInt(document.getElementById('statsYear').value); startTime = new Date(sy, sm, 1).getTime(); endTime = new Date(sy, sm + 1, 1).getTime(); } 
+        else if (period === 'all') { chartType = 'monthly'; } 
+        else if (period === 'range') {
+            startTime = finalRangeStart || 0; endTime = finalRangeEnd || 4102444800000;
+            if ((endTime - startTime) > 60 * 24 * 60 * 60 * 1000) chartType = 'monthly';
+        }
+        return { startTime, endTime, showLineChart, chartType };
+    }
+
+    function openDateRangeModal() {
+        if (!rangeModal) rangeModal = new bootstrap.Modal(document.getElementById('dateRangeModal'));
+        try {
+            const res = JSON.parse(window.Android.querySql(DB_NAME, "SELECT MIN(timestamp) as minTs, MAX(timestamp) as maxTs FROM transactions"));
+            if (res[0] && res[0].minTs) { dbMinTs = new Date(res[0].minTs).setHours(0,0,0,0); dbMaxTs = new Date(res[0].maxTs).setHours(23,59,59,999); } 
+            else { dbMinTs = new Date().setHours(0,0,0,0); dbMaxTs = new Date().setHours(23,59,59,999); }
+        } catch(e) { dbMinTs = new Date().setHours(0,0,0,0); dbMaxTs = new Date().setHours(23,59,59,999); }
+        rangeStart = null; rangeEnd = null; document.getElementById('btnApplyRange').disabled = true; calCurrentDate = new Date(dbMaxTs); 
+        renderCalendar(); rangeModal.show();
+    }
+    
+    function changeCalMonth(dir) { calCurrentDate.setMonth(calCurrentDate.getMonth() + dir); renderCalendar(); }
+    
+    function renderCalendar() {
+        const year = calCurrentDate.getFullYear(); const month = calCurrentDate.getMonth();
+        document.getElementById('calMonthYear').innerText = new Date(year, month).toLocaleString('ru-RU', {month: 'long', year: 'numeric'});
+        const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
+        let offset = firstDay === 0 ? 6 : firstDay - 1; 
+
+        let html = ''; for(let i = 0; i < offset; i++) html += `<div class="cal-day disabled"></div>`;
+        for(let d = 1; d <= daysInMonth; d++) {
+            let tsStart = new Date(year, month, d).setHours(0,0,0,0); let tsEnd = new Date(year, month, d).setHours(23,59,59,999);
+            let isOut = (tsEnd < dbMinTs || tsStart > dbMaxTs); let cls = 'cal-day';
+            if (isOut) cls += ' disabled';
+            if (rangeStart && tsStart === rangeStart) cls += ' selected'; else if (rangeEnd && tsStart === rangeEnd) cls += ' selected'; else if (rangeStart && rangeEnd && tsStart > rangeStart && tsStart < rangeEnd) cls += ' in-range';
+            html += `<div class="${cls}" ${isOut ? '' : `onclick="clickCalDay(${tsStart})"`}>${d}</div>`;
+        }
+        document.getElementById('calDays').innerHTML = html;
+        let text = 'Выберите начальную дату';
+        if (rangeStart && !rangeEnd) text = `Начало: ${new Date(rangeStart).toLocaleDateString('ru-RU')}. Выберите конец.`;
+        if (rangeStart && rangeEnd) text = `${new Date(rangeStart).toLocaleDateString('ru-RU')} - ${new Date(rangeEnd).toLocaleDateString('ru-RU')}`;
+        document.getElementById('calSelectedText').innerText = text;
+    }
+    
+    function clickCalDay(ts) {
+        if (!rangeStart || (rangeStart && rangeEnd)) { rangeStart = ts; rangeEnd = null; document.getElementById('btnApplyRange').disabled = true; } 
+        else if (ts < rangeStart) { rangeStart = ts; rangeEnd = null; } 
+        else { rangeEnd = ts; document.getElementById('btnApplyRange').disabled = false; }
+        renderCalendar();
+    }
+    
+    function applyDateRange() {
+        if (!rangeStart || !rangeEnd) return;
+        finalRangeStart = rangeStart; finalRangeEnd = rangeEnd + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + 59000; 
+        const startStr = new Date(finalRangeStart).toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit', year: '2-digit'});
+        const endStr = new Date(finalRangeEnd).toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit', year: '2-digit'});
+        document.getElementById('rangeBtnText').innerText = `${startStr} - ${endStr}`;
+        rangeModal.hide(); triggerCalculateStats();
+    }
+    
+    function cancelDateRange() { 
+        if (!finalRangeStart || !finalRangeEnd) { document.getElementById('statsPeriod').value = 'month'; togglePeriodSelector(); } 
+    }
     function triggerCalculateStats() {
         document.getElementById('loadingOverlay').classList.remove('d-none');
         setTimeout(() => {
