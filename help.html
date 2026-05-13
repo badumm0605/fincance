@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Инструкция</title>
+    <link href="file:///android_asset/css/bootstrap.min.css" rel="stylesheet">
+    <link href="file:///android_asset/fwa/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .back-btn { cursor: pointer; color: #0d6efd; text-decoration: none; font-weight: bold; }
+        .help-section { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .icon-box { width: 40px; height: 40px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-right: 15px; }
+        .bg-blue-light { background: #e7f1ff; color: #0d6efd; }
+        .bg-green-light { background: #e8f5e9; color: #198754; }
+        .bg-orange-light { background: #fff3cd; color: #fd7e14; }
+        .bg-purple-light { background: #f3e8ff; color: #6f42c1; }
+    </style>
+</head>
+<body class="pb-5">
+
+<div class="sticky-top bg-white border-bottom shadow-sm p-3 mb-4">
+    <div class="d-flex align-items-center">
+        <a href="javascript:history.back()" class="back-btn me-3 fs-5"><i class="fa-solid fa-arrow-left"></i></a>
+        <h5 class="mb-0 fw-bold">Как это работает?</h5>
+    </div>
+</div>
+
+<div class="container">
+    
+    <div class="text-center mb-4">
+        <i class="fa-solid fa-book-open fs-1 text-primary mb-2"></i>
+        <h2 class="fw-bold text-dark">Руководство пользователя</h2>
+        <p class="text-muted small">Подробное описание функций и возможностей.</p>
+    </div>
+<div class="help-section">
+        <div class="d-flex align-items-center mb-3">
+            <div class="icon-box bg-green-light"><i class="fa-solid fa-wallet"></i></div>
+            <h5 class="fw-bold mb-0">Транзакции и Кошельки</h5>
+        </div>
+        <p class="text-muted small lh-sm">Приложение позволяет разделить личные и рабочие деньги. Вы можете создавать неограниченное количество счетов (Наличные, Карта Сбербанка, Заначка).</p>
+        <p class="text-muted small lh-sm">С помощью кнопки "+" фиксируйте все операции. Обязательно указывайте категории — это позволит в конце месяца увидеть, куда уходит бюджет.</p>
+    </div>
+
+    <div class="help-section">
+        <div class="d-flex align-items-center mb-3">
+            <div class="icon-box bg-purple-light"><i class="fa-solid fa-bullhorn"></i></div>
+            <h5 class="fw-bold mb-0">Счет рекламного бюджета</h5>
+        </div>
+        <p class="text-muted small lh-sm"><b>Важно:</b> Для правильной работы аналитики в CRM-системе, создайте отдельный счет и отметьте его как "Рекламный" (Target account). Все расходы на Авито, Яндекс и другие площадки списывайте именно с него. Это позволит CRM высчитывать чистую прибыль и цену привлечения одного клиента (CPA).</p>
+    </div>
+    </div>
+
+</body>
+</html>
