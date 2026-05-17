@@ -1090,50 +1090,19 @@ function smartAutoBackup(appName) {
         if (window.Morris) new Morris.Donut({ element: chartNode.id, data: donutData, colors: colors, resize: true, formatter: function (y) { return Number(y).toLocaleString('ru-RU') + ' ₽'; } });
         legendNode.innerHTML = legendHtml;
     }
-function exportFinanceData() {
-    if (!window.Android || !window.Android.querySql) {
-        alert("Ошибка: Мост Android недоступен.");
-        return;
-    }
-    
-    try {
-        // 1. Извлекаем транзакции (только те, что относятся к финансам, либо все, включая CRM-дубли)
-        const transactions = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM transactions ORDER BY id ASC"));
-        const categories = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM categories ORDER BY id ASC"));
-        const accounts = JSON.parse(window.Android.querySql(DB_NAME, "SELECT * FROM accounts ORDER BY id ASC"));
-        
-        // 2. Формируем единый объект данных
-        const exportData = {
-            sourceApp: "com.kontach.finance",
-            exportTimestamp: Date.now(),
-            tables: {
-                transactions: transactions,
-                categories: categories,
-                accounts: accounts
-            }
-        };
-        
-        // 3. Конвертируем в JSON строку
-        const jsonString = JSON.stringify(exportData, null, 2);
+const jsonString = JSON.stringify(exportData, null, 2);
         const fileName = `finance_export_${Date.now()}.json`;
         
-        // 4. Сохраняем в файл песочницы модуля Финансы
-        if (window.Android.saveTextFile) {
-            window.Android.saveTextFile(fileName, jsonString);
-        } else if (window.KontachAPI && window.KontachAPI.saveTextFile) {
-            window.KontachAPI.saveTextFile(fileName, jsonString);
-        } else {
-            console.log(jsonString);
-            alert("Метод сохранения файлов не найден. Лог сохранен в консоли.");
-            return;
-        }
+        // Симулируем скачивание через браузер
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
         
-        alert(`Данные Финансов успешно сохранены в файл:\n${fileName}\n\nИщите его в папке sandbox модуля finance.`);
-    } catch (e) {
-        console.error(e);
-        alert("Ошибка экспорта финансов: " + e.message);
-    }
-}
+        alert(`Файл отправлен в системные загрузки вашего устройства как: ${fileName}`);
     window.addEventListener('DOMContentLoaded', initDb);
 </script>
 </body>
